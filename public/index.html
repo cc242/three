@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <script src="scripts/WebAR_Camera.js"></script>
+  <!--<script src="//ads.pictela.com/ads/jsapi/ADTECH.js"></script>-->
+  <title>App</title>
+</head>
+<body>
+<div id="container">
+  <div class="overlay"></div>
+  <div class="page intro">
+      <div class="intro__cta"></div>
+      <div class="intro__prompt"></div>
+      <video width="320" height="568" webkit-playsinline playsinline loop autoplay muted>
+          <source type="video/mp4" src="intro@2x.mp4">
+      </video>
+  </div>
+  <div class="page experience">
+      <div class="experience__notification"><div>Look around to find Puggerfly</div></div>
+    <video id="webar_video" width="320" height="568" autoplay></video>
+  </div>
+</div>
+<div class="log">00</div>
+<div class="hide" id="test-canvas"></div>
+<script>
+
+    document.addEventListener("DOMContentLoaded", function() {
+        WebAR_Project.init({container:'#container', width: 320, height: 568, gyro: false});
+    });
+    /*ADTECH.ready(function () {
+
+    });*/
+</script>
+</body>
+</html>

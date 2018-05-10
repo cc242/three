@@ -1,0 +1,31 @@
+@import 'sass/general';
+@import 'sass/fonts';
+@import 'sass/creative';
+
+.portrait {
+  .container {
+    // background-image: url("./img/bg_portrait.jpg");
+  }
+}
+.landscape {
+  .container {
+    canvas {
+      display: none;
+    }
+    background-image: url("./img/rotate_ico.png");
+    background-size: auto;
+    background-color: white;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+  }
+  .rescale_reposition {
+    canvas {
+      display: none;
+    }
+    background-image: url("./img/rotate_ico.png");
+    background-size: auto;
+    background-color: white;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+  }
+}
