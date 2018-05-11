@@ -8,7 +8,7 @@ import * as $ from "jquery";
 let three, sprites, paused;
 let scene, object, stats, camera, renderer;
 let INTERSECTED, raycaster, mouse, frustrum, cameraViewProjectionMatrix, intersect_timeout;
-let arr_groups, arr_threeSprites;
+let arr_groups;
 let count = 0;
 let multiples = 4;
 let arr_assets = [
@@ -75,29 +75,54 @@ class Experience extends EventEmitter {
          * These are the animated sprites
          */
         scene_sprites = [];
-
         // create a sprite
-        console.log('', sprites.getCanvas('rainbow'));
-        let s = three.getTHREESprite(sprites.getCanvas('rainbow'), 'mysprite');
-        scene.add(s);
-        scene_sprites.push({sprite: s, id:'mysprite'});
-        s.position.set(-1200, 0, 400);
-        s.scale.set(1024, 1024, 1.0);
-        sprites.getSprite('rainbow').render = true;
 
-        let s2 = three.getTHREESprite(sprites.getCanvas('rainbow'), 'mysprite2');
-        scene.add(s2);
-        scene_sprites.push({sprite: s2, id:'mysprite2'});
-        s2.position.set(1200, 200, 300);
-        s2.scale.set(1024, 1024, 1.0);
-        sprites.getSprite('rainbow').render = true;
+        let scene_max = [
+            {id: 'rainbow1', canvas: 'rainbow'},
+            {id: 'rainbow2', canvas: 'rainbow'},
+            {id: 'rainbow3', canvas: 'rainbow'},
+            {id: 'rainbow4', canvas: 'rainbow'},
+            {id: 'kiss1', canvas: 'kiss'},
+            {id: 'kiss2', canvas: 'kiss'},
+            {id: 'kiss3', canvas: 'kiss'},
+            {id: 'kiss4', canvas: 'kiss'},
+            {id: 'peeing_pug1', canvas: 'peeing_pug'},
+            {id: 'peeing_pug2', canvas: 'peeing_pug'},
+            {id: 'peeing_pug3', canvas: 'peeing_pug'},
+            {id: 'peeing_pug4', canvas: 'peeing_pug'},
+            {id: 'dance1', canvas: 'dance'},
+            {id: 'dance2', canvas: 'dance'},
+            {id: 'dance3', canvas: 'dance'},
+            {id: 'dance4', canvas: 'dance'},
+            {id: 'butt_notype1', canvas: 'butt_notype'},
+            {id: 'butt_notype2', canvas: 'butt_notype'},
+            {id: 'butt_notype3', canvas: 'butt_notype'},
+            {id: 'butt1', canvas: 'butt'},
+            {id: 'butt2', canvas: 'butt'},
+            {id: 'butt3', canvas: 'butt'},
+            {id: 'skipping1', canvas: 'skipping'},
+            {id: 'skipping2', canvas: 'skipping'},
+            {id: 'skipping3', canvas: 'skipping'},
 
 
 
+        ];
+        var count = 0;
+        for (let i=0; i<scene_max.length; i++) {
+            let s = three.getTHREESprite(sprites.getCanvas(scene_max[i].canvas), scene_max[i].id);
+            scene.add(s);
+            scene_sprites.push({sprite: s, id: scene_max[i].id, canvas: scene_max[i].canvas});
 
-
+            var angle = Math.random()*Math.PI*2;
+            let radius = 5000;
+            let xpos = Math.cos(angle)*radius;
+            let zpos = Math.sin(angle)*radius;
+            console.log('', zpos);
+            s.position.set(xpos, Math.random() * 2000,  zpos);
+            s.scale.set(1024, 1024, 1.0);
+        }
         function getPos() {
-            return (Math.random() > 0.5 ? 1 : -1) * (2500 + Math.random() * 1500);
+            return (Math.random() > 0.5 ? 1 : -1) * (2500 + Math.random() * 2500);
         }
 
         return;
@@ -221,14 +246,17 @@ class Experience extends EventEmitter {
                 break;
         }*/
         // for every sprite on the screen {sprite, id}
+        let obj_onscreen = {};
         for (let i=0; i<scene_sprites.length; i++) {
-            console.log('', three.getObject(scene_sprites[i].id)));
+            sprites.getSprite(scene_sprites[i].canvas).render = false;
             if (frustrum.intersectsSprite( three.getObject(scene_sprites[i].id)) ) {
-                //sprites.getSprite(scene_sprites[i].id).render = true;
-            } else {
-                //sprites.getSprite(scene_sprites[i].id).render = false;
+                obj_onscreen[scene_sprites[i].canvas] = sprites.getSprite(scene_sprites[i].canvas);
             }
         }
+        for (const [key] of Object.entries(obj_onscreen)) {
+                   let obj = obj_onscreen[key];
+                   obj.render = true;
+                }
         stats.end();
     }
 

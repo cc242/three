@@ -34,7 +34,7 @@ class ThreeSetup extends EventEmitter {
             controls.enableZoom = true;
             camera.position.z = 0;
             camera.position.y = 1600;
-            camera.position.z = -1060.9657061668715;
+            camera.position.z = 0;//-1060.9657061668715;
             camera.lookAt(new THREE.Vector3());
         } else {
             controls = new THREE.DeviceOrientationControls( camera );
@@ -81,7 +81,7 @@ class ThreeSetup extends EventEmitter {
         return camera;
     }
     getCrate() {
-        var geometry = new THREE.BoxGeometry( 1, 1, 1 );
+        var geometry = new THREE.BoxGeometry( 60, 60, 60 );
         var material = new THREE.MeshPhongMaterial( { depthWrite: true, map: THREE.ImageUtils.loadTexture(require('../img/crate.jpg')) } );
         var object = new THREE.Mesh( geometry, material );
         object.castShadow = true;
