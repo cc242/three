@@ -81,7 +81,7 @@ class ThreeSetup extends EventEmitter {
         return camera;
     }
     getCrate() {
-        var geometry = new THREE.BoxGeometry( 60, 60, 60 );
+        var geometry = new THREE.BoxGeometry( 0, 0, 0 );
         var material = new THREE.MeshPhongMaterial( { depthWrite: true, map: THREE.ImageUtils.loadTexture(require('../img/crate.jpg')) } );
         var object = new THREE.Mesh( geometry, material );
         object.castShadow = true;
@@ -110,6 +110,10 @@ class ThreeSetup extends EventEmitter {
     getRenderer() {
         return renderer;
     }
+    hideObject(id) {
+
+    }
+
 }
 
 export default ThreeSetup;

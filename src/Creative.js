@@ -71,7 +71,8 @@ var creative = {
             e.preventDefault();
             $('.intro__cta').off();
             $('.intro__prompt').fadeIn();
-            this.initCamera();
+            this.showPage(screens.experience);
+            // this.initCamera();
         });
     },
     showPage(id) {

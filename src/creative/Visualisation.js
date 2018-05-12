@@ -8,7 +8,7 @@ import * as $ from "jquery";
 let three, sprites, paused;
 let scene, object, stats, camera, renderer;
 let INTERSECTED, raycaster, mouse, frustrum, cameraViewProjectionMatrix, intersect_timeout;
-let arr_groups;
+let groups;
 let count = 0;
 let multiples = 4;
 let arr_assets = [
@@ -17,8 +17,10 @@ let arr_assets = [
     {json: 'anim/peeing_pug.json', id: 'peeing_pug'},
     {json: 'anim/dance.json', id: 'dance'},
     {json: 'anim/butt_notype.json', id: 'butt_notype'},
-    {json: 'anim/butt.json', id: 'butt'},
     {json: 'anim/skipping.json', id: 'skipping'},
+    {json: 'anim/star.json', id: 'star'},
+    {json: 'anim/star.json', id: 'star2'},
+    {json: 'anim/butt.json', id: 'butt'},
     {json: 'anim/twerk_small.json', id: 'twerk'}
 ];
 let arr_images = [
@@ -63,7 +65,6 @@ class Experience extends EventEmitter {
     }
     createSprites() {
         sprites = new Sprites();
-        arr_groups = [];
         sprites.initPixi();
         sprites.loadSprites(arr_assets).then(() => {
             this.addSprites();
@@ -89,7 +90,6 @@ class Experience extends EventEmitter {
             {id: 'peeing_pug1', canvas: 'peeing_pug'},
             {id: 'peeing_pug2', canvas: 'peeing_pug'},
             {id: 'peeing_pug3', canvas: 'peeing_pug'},
-            {id: 'peeing_pug4', canvas: 'peeing_pug'},
             {id: 'dance1', canvas: 'dance'},
             {id: 'dance2', canvas: 'dance'},
             {id: 'dance3', canvas: 'dance'},
@@ -97,67 +97,56 @@ class Experience extends EventEmitter {
             {id: 'butt_notype1', canvas: 'butt_notype'},
             {id: 'butt_notype2', canvas: 'butt_notype'},
             {id: 'butt_notype3', canvas: 'butt_notype'},
-            {id: 'butt1', canvas: 'butt'},
-            {id: 'butt2', canvas: 'butt'},
-            {id: 'butt3', canvas: 'butt'},
             {id: 'skipping1', canvas: 'skipping'},
             {id: 'skipping2', canvas: 'skipping'},
             {id: 'skipping3', canvas: 'skipping'},
-
-
-
+            {id: 'twerk1', canvas: 'twerk'}
         ];
-        var count = 0;
+        groups = [];
         for (let i=0; i<scene_max.length; i++) {
             let s = three.getTHREESprite(sprites.getCanvas(scene_max[i].canvas), scene_max[i].id);
-            scene.add(s);
             scene_sprites.push({sprite: s, id: scene_max[i].id, canvas: scene_max[i].canvas});
 
-            var angle = Math.random()*Math.PI*2;
-            let radius = 5000;
-            let xpos = Math.cos(angle)*radius;
+            let angle = Math.random()*Math.PI*2;
+            let radius = (Math.random() * 2000) + 3000;
+            let xpos = Math.cos(angle) *radius;
             let zpos = Math.sin(angle)*radius;
-            console.log('', zpos);
-            s.position.set(xpos, Math.random() * 2000,  zpos);
-            s.scale.set(1024, 1024, 1.0);
+            let group = new THREE.Object3D();
+            group.add(s);
+            scene.add(group);
+
+            groups.push({canvas: scene_max[i].canvas, group: group, id: scene_max[i].id, spr: s, disappear: 300 + (Math.floor(Math.random() * 400))});
+            s.scale.set(800, 800, 1.0);
+
+            switch (scene_max[i].id) {
+                case 'skipping1':
+                case 'skipping2':
+                case 'skipping3':
+                    group.rotationspeed = 0.002;
+                    s.position.set(xpos, 0,  zpos);
+                    break;
+                case 'rainbow1':
+                    group.rotationspeed = 0.01;
+                    s.position.set(0, 3000,  0);
+                    break;
+                case 'peeing_pug1':
+                    group.rotationspeed = 0.002;
+                    s.position.set(0, 3000,  0);
+                    break;
+                case 'twerk':
+                    group.rotationspeed = 0;
+                    s.position.set(xpos, 0,  zpos);
+                    break;
+                default:
+                    group.rotationspeed = 0.001;
+                    s.position.set(xpos, Math.random() * 3000,  zpos);
+            }
+
         }
+        console.log('', groups);
         function getPos() {
             return (Math.random() > 0.5 ? 1 : -1) * (2500 + Math.random() * 2500);
         }
-
-        return;
-
-
-        let spr = three.getTHREESprite(sprites.getCanvas('rainbow'), 'rainbow');
-        let group = new THREE.Object3D();
-        scene.add(group);
-        group.blah = 'rainbow';
-        group.add(spr);
-        scene_sprites.push({sprite: spr, id:'rainbow'});
-        sprites.getSprite('rainbow').render = true;
-
-        arr_groups.push(group);
-        group.rotationspeed = (1 * (0.001) + 0.002);
-        spr.position.set(getPos(), Math.random() * 3000, getPos());
-        spr.scale.set(1024, 1024, 1.0);
-
-        let spr2 = three.getTHREESprite(sprites.getCanvas('rainbow'), 'rainbow2');
-        let group2 = new THREE.Object3D();
-        scene.add(group2);
-        group2.blah = 'rainbow';
-        group2.add(spr2);
-        scene_sprites.push({sprite: spr2, id:'rainbow2'});
-        sprites.getSprite('rainbow').render = true;
-
-        arr_groups.push(group2);
-        group2.rotationspeed = (1 * (0.001) + 0.002);
-        spr2.position.set(getPos(), Math.random() * 3000, getPos());
-        spr2.scale.set(1024, 1024, 1.0);
-
-        function getPos() {
-            return (Math.random() > 0.5 ? 1 : -1) * (2500 + Math.random() * 1500);
-        }
-
         return;
 
         for (let i=0; i<arr_assets.length; i++) {
@@ -168,7 +157,6 @@ class Experience extends EventEmitter {
                 group.add(spr);
                 sprites.getSprite(arr_assets[i].id).render = true;
 
-                arr_groups[arr_assets[i].id] = group;
                 group.rotationspeed = (i * (0.001) + 0.002);
 
                 switch (arr_assets[i].id) {
@@ -193,7 +181,7 @@ class Experience extends EventEmitter {
         /**
          * These are the static images
          */
-        for (let i=0; i<arr_images.length; i++) {
+        /*for (let i=0; i<arr_images.length; i++) {
             let imgTexture = THREE.ImageUtils.loadTexture( arr_images[i]['img'] );
             let imgMaterial = new THREE.SpriteMaterial( { map: imgTexture, useScreenCoordinates: true } );
             let sprite = new THREE.Sprite( imgMaterial );
@@ -208,7 +196,14 @@ class Experience extends EventEmitter {
 
         function getPos() {
             return (Math.random() > 0.5 ? 1 : -1) * (2500 + Math.random() * 1500);
-        }
+        }*/
+    }
+    getPosition() {
+        let angle = Math.random()*Math.PI*2;
+        let radius = (Math.random() * 3000) + 1000;
+        let xpos = Math.cos(angle) *radius;
+        let zpos = Math.sin(angle)*radius;
+        return {x: xpos, z: zpos};
     }
     animate() {
         stats.begin();
@@ -218,19 +213,32 @@ class Experience extends EventEmitter {
 
         count++;
 
-        for (let i=0; i<arr_groups.length; i++) {
-            arr_groups[i].rotation.y += arr_groups[i]['rotationspeed'];
-            switch(arr_groups[i].blah) {
-                case 'peeing_pug':
-                    arr_groups[i].position.y = (Math.sin(count/40) * 160) + 120;
+        for (let i=0; i<groups.length; i++) {
+             groups[i].group.rotation.y += groups[i].group['rotationspeed'];
+            switch(groups[i].id) {
+                case 'rainbow2':
+                    groups[i].group.position.z = (Math.cos(count/40) * 1300) + 0;
+                    groups[i].group.position.y = (Math.sin(count/40) * 800) + 100;
+                    break;
+                case 'peeing_pug1':
+                    groups[i].group.position.y = (Math.sin(count/40) * 1300) + 0;
+                    break;
+                case 'peeing_pug2':
+                    groups[i].group.position.y = (Math.sin(count/100) * 160) + 220;
+                    break;
+                case 'peeing_pug3':
+                    groups[i].group.position.y = (Math.sin(count/100) * 160) + 320;
                     break;
                 case 'butt':
-                    arr_groups[i].position.y = (Math.sin(count/80) * 120) + 70;
+                    groups[i].group.position.y = (Math.sin(count/80) * 120) + 70;
                     break;
             }
+            if (count % groups[i].disappear == 0) {
+                // console.log('', three.hideObject('twerk1'));
+                sprites.hide(groups[i].canvas);
+               // groups[i].spr.position.set(this.getPosition().x, Math.random() * 3000,  this.getPosition().z);
+            }
         }
-
-
 
         /**
          * Is sprite on screen

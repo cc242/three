@@ -71,6 +71,7 @@ class Sprites extends EventEmitter {
                         animsprite.animationSpeed = 0.5;
                     }
 
+
                     animsprite.play();
                     app.stage.addChild(animsprite);
 
@@ -85,7 +86,7 @@ class Sprites extends EventEmitter {
                     document.body.appendChild(canvas);
                     arr_sprites[sprites[i].id]['canvas'] = canvas;
                 }
-
+                //arr_sprites['star'].render = true;
                 canDraw = true;
                 console.log('created sprites and canvas', arr_sprites);
                 resolve();
@@ -108,10 +109,10 @@ class Sprites extends EventEmitter {
             if (count % 3 == 0) {
                 // check if relevant Three.Sprite is on-screen (set in visualisation.js)
 
-                if (arr_sprites[key].render) {
+                //if (arr_sprites[key].render) {
                     ccontext.clearRect(0, 0, ccanvas.width, ccanvas.height);
                     ccontext.drawImage(pixicanvas, -(sprite.transform.position._x), -sprite.transform.position._y);
-                }
+                //}
             }
             count++;
         }
@@ -121,6 +122,9 @@ class Sprites extends EventEmitter {
     }
     getSprite(id) {
         return arr_sprites[id];
+    }
+    hide(id) {
+       // console.log('hiding', id);
     }
 }
 
