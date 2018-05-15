@@ -109,10 +109,10 @@ class Sprites extends EventEmitter {
             if (count % 3 == 0) {
                 // check if relevant Three.Sprite is on-screen (set in visualisation.js)
 
-                //if (arr_sprites[key].render) {
+                if (arr_sprites[key].render) {
                     ccontext.clearRect(0, 0, ccanvas.width, ccanvas.height);
                     ccontext.drawImage(pixicanvas, -(sprite.transform.position._x), -sprite.transform.position._y);
-                //}
+                }
             }
             count++;
         }

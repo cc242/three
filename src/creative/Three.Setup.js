@@ -1,8 +1,10 @@
-/*global THREE Stats*/
+/*global THREE Quad Stats*/
 
 import {EventEmitter} from 'events';
+import TweenMax from 'gsap';
 var screenWidth, screenHeight, scene, renderer, camera, controls, stats
 var arr_materials = [];
+var obj_materials = [];
 var objects = {};
 
 class ThreeSetup extends EventEmitter {
@@ -33,18 +35,20 @@ class ThreeSetup extends EventEmitter {
             controls = new THREE.OrbitControls( camera, renderer.domElement );
             controls.enableZoom = true;
             camera.position.z = 0;
-            camera.position.y = 1600;
-            camera.position.z = 0;//-1060.9657061668715;
+            camera.position.y = 700;
+            camera.position.z = 1;
             camera.lookAt(new THREE.Vector3());
+            controls.update();
         } else {
             controls = new THREE.DeviceOrientationControls( camera );
-            var initialPosition = new THREE.Vector3(0, 300, 0);
+            var initialPosition = new THREE.Vector3(0, 1300, 0);
             camera.position.copy(initialPosition);
+            controls.update();
         }
         let size = 20000;
         let divisions = 50;
         let gridHelper = new THREE.GridHelper( size, divisions, 0x3b3b3b, 0x3b3b3b );
-        scene.add( gridHelper );
+        // scene.add( gridHelper );
         gridHelper.position.y = -300;
         gridHelper.position.x = 5;
 
@@ -58,11 +62,10 @@ class ThreeSetup extends EventEmitter {
         directionalLight.position.set( 1, 10, 0 ).normalize();
         scene.add( directionalLight );
 
-        this.getStats();
         // this.animate();
     }
+    // this is called from Visualisation
     animate() {
-
         controls.update();
         renderer.render( scene, camera );
         /**
@@ -71,8 +74,6 @@ class ThreeSetup extends EventEmitter {
         for (let i=0; i<arr_materials.length; i++) {
             arr_materials[i]['mat'].map.needsUpdate = true
         }
-        //requestAnimationFrame( this.animate.bind(this) );
-
     }
     getScene() {
         return scene;
@@ -94,14 +95,16 @@ class ThreeSetup extends EventEmitter {
     }
     getStats() {
         stats = new Stats();
+        // document.body.appendChild(stats.domElement);
         return stats;
     }
-    getTHREESprite(canvas, id) {
+    getAnimatedSprite(canvas, id) {
         let crateTexture = new THREE.Texture(canvas);
         let crateMaterial = new THREE.SpriteMaterial( { map: crateTexture, useScreenCoordinates: false } );
-        arr_materials.push({mat: crateMaterial, canv: canvas});
         let obj = new THREE.Sprite( crateMaterial );
+        obj_materials[id] = crateMaterial;
         objects[id] = obj;
+        arr_materials.push({mat: crateMaterial, canv: canvas});
         return obj;
     }
     getObject(id) {
@@ -111,6 +114,14 @@ class ThreeSetup extends EventEmitter {
         return renderer;
     }
     hideObject(id) {
+        arr_materials[arr_materials.length-1].mat.opacity = 1;
+        objects[id].material = arr_materials[arr_materials.length-1].mat;
+        TweenMax.to(objects[id].material, 1, {delay: 0.3, opacity: 0, ease: Quad.easeIn, onComplete: ()=> {
+            // console.log('', obj_materials);
+                setTimeout(()=> {
+                    objects[id].material = obj_materials[id]
+                }, 200);
+            }});
 
     }
 

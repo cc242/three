@@ -7,10 +7,15 @@ import * as $ from "jquery";
 
 let three, sprites, paused;
 let scene, object, stats, camera, renderer;
-let INTERSECTED, raycaster, mouse, frustrum, cameraViewProjectionMatrix, intersect_timeout;
+let INTERSECTED, raycaster, mouse, frustrum, cameraViewProjectionMatrix, intersect_timeout, hiding;
 let groups;
 let count = 0;
+let hiya, hiya_timeout, end_timeout;
 let multiples = 4;
+let notifications = {
+  intro: 'Look around to find Puggerfly.',
+  selfie: 'Selfie time!'
+};
 let arr_assets = [
     {json: 'anim/rainbow.json', id: 'rainbow'},
     {json: 'anim/kiss.json', id: 'kiss'},
@@ -24,12 +29,11 @@ let arr_assets = [
     {json: 'anim/twerk_small.json', id: 'twerk'}
 ];
 let arr_images = [
-    {img: 'anim/en-megapack_heart-09.png', id: 'heart'},
-    {img: 'anim/en-megapack_143-lips.png', id: 'lips'},
-    {img: 'anim/Wink.png', id: 'wink'},
-    {img: 'anim/en-megapack_143-lips.png', id: 'lips'},
-    {img: 'anim/Crying.png', id: 'crying'},
-    {img: 'anim/en-megapack_heart-09.png'}
+    {img: 'img/heart-blue.png', id: 'heart-blue'},
+    {img: 'img/heart-red.png', id: 'heart-red'},
+    {img: 'img/heart-yellow.png', id: 'heart-yellow'},
+    {img: 'img/heart-green.png', id: 'heart-green'},
+    {img: 'img/heart-purple.png', id: 'heart-purple'}
 ];
 
 
@@ -42,7 +46,7 @@ class Experience extends EventEmitter {
         this.init()
     }
     start() {
-        this.showNotification('blah', 2)
+        this.showNotification(notifications.intro, 1);
     }
     init() {
         three = new ThreeSetup(this.config);
@@ -51,7 +55,7 @@ class Experience extends EventEmitter {
         stats = three.getStats();
         camera = three.getCamera();
         renderer = three.getRenderer();
-        document.body.appendChild(stats.domElement);
+
 
         scene.add(object);
 
@@ -96,15 +100,17 @@ class Experience extends EventEmitter {
             {id: 'dance4', canvas: 'dance'},
             {id: 'butt_notype1', canvas: 'butt_notype'},
             {id: 'butt_notype2', canvas: 'butt_notype'},
-            {id: 'butt_notype3', canvas: 'butt_notype'},
+            {id: 'butt1', canvas: 'butt'},
+            {id: 'butt2', canvas: 'butt'},
             {id: 'skipping1', canvas: 'skipping'},
             {id: 'skipping2', canvas: 'skipping'},
             {id: 'skipping3', canvas: 'skipping'},
-            {id: 'twerk1', canvas: 'twerk'}
+            {id: 'twerk1', canvas: 'twerk'},
+            {id: 'star', canvas: 'star'},
         ];
         groups = [];
         for (let i=0; i<scene_max.length; i++) {
-            let s = three.getTHREESprite(sprites.getCanvas(scene_max[i].canvas), scene_max[i].id);
+            let s = three.getAnimatedSprite(sprites.getCanvas(scene_max[i].canvas), scene_max[i].id);
             scene_sprites.push({sprite: s, id: scene_max[i].id, canvas: scene_max[i].canvas});
 
             let angle = Math.random()*Math.PI*2;
@@ -115,12 +121,17 @@ class Experience extends EventEmitter {
             group.add(s);
             scene.add(group);
 
-            groups.push({canvas: scene_max[i].canvas, group: group, id: scene_max[i].id, spr: s, disappear: 300 + (Math.floor(Math.random() * 400))});
+            groups.push({canvas: scene_max[i].canvas, group: group, id: scene_max[i].id, spr: s, disappear: 10 + (Math.floor(Math.random() * 200))});
             s.scale.set(800, 800, 1.0);
 
             switch (scene_max[i].id) {
                 case 'skipping1':
+                    group.rotationspeed = 0.002;
+                    s.position.set(xpos, 0,  zpos);
                 case 'skipping2':
+                    group.rotationspeed = 0.002;
+                    s.position.set(xpos, 0,  zpos);
+                    break;
                 case 'skipping3':
                     group.rotationspeed = 0.002;
                     s.position.set(xpos, 0,  zpos);
@@ -133,9 +144,12 @@ class Experience extends EventEmitter {
                     group.rotationspeed = 0.002;
                     s.position.set(0, 3000,  0);
                     break;
-                case 'twerk':
+                case 'twerk1':
                     group.rotationspeed = 0;
                     s.position.set(xpos, 0,  zpos);
+                    break;
+                case 'star':
+                    scene.remove(s);
                     break;
                 default:
                     group.rotationspeed = 0.001;
@@ -143,60 +157,59 @@ class Experience extends EventEmitter {
             }
 
         }
-        console.log('', groups);
-        function getPos() {
-            return (Math.random() > 0.5 ? 1 : -1) * (2500 + Math.random() * 2500);
-        }
-        return;
 
-        for (let i=0; i<arr_assets.length; i++) {
-
-                let spr = three.getTHREESprite(sprites.getCanvas(arr_assets[i].id), arr_assets[i].id);
+        for (let i=0; i<20; i++) {
+            for (let i = 0; i < arr_images.length; i++) {
+                let imgTexture = THREE.ImageUtils.loadTexture(arr_images[i]['img']);
+                let imgMaterial = new THREE.SpriteMaterial({map: imgTexture, useScreenCoordinates: true});
+                let sprite = new THREE.Sprite(imgMaterial);
+                let angle = Math.random() * Math.PI * 2;
+                let radius = (Math.random() * 5000) + 3000;
+                let xpos = Math.cos(angle) * radius;
+                let zpos = Math.sin(angle) * radius;
+                sprite.position.set(xpos, Math.random() * 4000, zpos);
+                sprite.scale.set(128, 128, 1.0);
                 let group = new THREE.Object3D();
                 scene.add(group);
-                group.add(spr);
-                sprites.getSprite(arr_assets[i].id).render = true;
-
-                group.rotationspeed = (i * (0.001) + 0.002);
-
-                switch (arr_assets[i].id) {
-                    case 'skipping':
-                        group.rotationspeed = 0.005;
-                        spr.position.set(getPos(), 0, getPos());
-                        break;
-                    case 'twerk':
-                        group.rotationspeed = 0;
-                        spr.position.set(600, -200, 600);
-                        spr.scale.set(256, 256, 1.0);
-                        object.position.x = spr.position.x;
-                        object.position.y = spr.position.y;
-                        object.position.z = spr.position.z;
-                        break;
-                    default:
-                        spr.position.set(getPos(), Math.random() * 3000, getPos());
-                        spr.scale.set(1024, 1024, 1.0);
-                }
+                group.add(sprite);
+                groups[arr_images[i].id] = group;
+                group.rotationspeed = ((i + 1) * (0.001) + 0.002);
+            }
         }
+        let imgTexture = THREE.ImageUtils.loadTexture('./img/hiya.png');
+        let imgMaterial = new THREE.SpriteMaterial({map: imgTexture, useScreenCoordinates: true});
+        hiya = new THREE.Sprite(imgMaterial);
+        scene.add(hiya);
+        hiya.scale.set(2560, 2560, 1.0);
+        setInterval(()=> {
+            // this.putInFrontOfCamera(sprite);
+            // this.putInFrontOfCamera(hiya);
+        }, 3000)
+    }
+    putOverPug(obj) {
+        var pos =  three.getObject('twerk1').position;
+        TweenMax.to(obj.position, 0.5, {x: pos.x, y:pos.y+100, z:pos.z, ease:Elastic.easeOut})
+    }
+    putInFrontOfCamera(obj) {
 
-        /**
-         * These are the static images
-         */
-        /*for (let i=0; i<arr_images.length; i++) {
-            let imgTexture = THREE.ImageUtils.loadTexture( arr_images[i]['img'] );
-            let imgMaterial = new THREE.SpriteMaterial( { map: imgTexture, useScreenCoordinates: true } );
-            let sprite = new THREE.Sprite( imgMaterial );
-            sprite.position.set( getPos(),  Math.random() * 1000, getPos() );
-            sprite.scale.set( 512, 512, 1.0 );
-            let group = new THREE.Object3D();
-            scene.add(group);
-            group.add(sprite);
-            arr_groups[arr_images[i].id] = group;
-            group.rotationspeed = ((i+1) * (0.001) + 0.002);
-        }
+        var vec = new THREE.Vector3( 0, camera.position.y, -700 );
+        vec.applyQuaternion( camera.quaternion );
+        console.log('', vec);
+        /*
+        TweenMax.set(obj.position, {x: 0, y:vec.y, z:0, ease:Elastic.easeOut})
+        TweenMax.to(obj.position, 0.5, {x: vec.x, y:vec.y, z:vec.z, ease:Elastic.easeOut});
+        TweenMax.to(obj.position, 2, {y:camera.position.y-40, yoyo:true, repeat: -1, ease:Elastic.easeOut});
+        */
 
-        function getPos() {
-            return (Math.random() > 0.5 ? 1 : -1) * (2500 + Math.random() * 1500);
-        }*/
+        var pos =  three.getObject('twerk1').position;
+        TweenMax.set(obj.position, {x: 0, y:vec.y, z:0, ease:Elastic.easeOut})
+        TweenMax.to(obj.position, 0.5, {x: pos.x, y:camera.position.y+100, z:pos.z, ease:Elastic.easeOut});
+        TweenMax.to(obj.position, 1, {y:camera.position.y+70, yoyo:true, repeat: -1, ease:Quad.easeInOut});
+        TweenMax.to(obj.material, 0.2, {opacity: 1});
+    }
+    hideHiya(obj) {
+        TweenMax.to(obj.position, 0.2, {x: 0, y:camera.position.y+140, z:0, ease:Quad.easeIn});
+        TweenMax.to(obj.material, 0.2, {opacity: 0});
     }
     getPosition() {
         let angle = Math.random()*Math.PI*2;
@@ -210,7 +223,7 @@ class Experience extends EventEmitter {
         three.animate();
         sprites.drawCanvas();
         requestAnimationFrame( this.animate.bind(this) );
-
+        // camera.position.y += 1
         count++;
 
         for (let i=0; i<groups.length; i++) {
@@ -232,11 +245,10 @@ class Experience extends EventEmitter {
                 case 'butt':
                     groups[i].group.position.y = (Math.sin(count/80) * 120) + 70;
                     break;
-            }
-            if (count % groups[i].disappear == 0) {
-                // console.log('', three.hideObject('twerk1'));
-                sprites.hide(groups[i].canvas);
-               // groups[i].spr.position.set(this.getPosition().x, Math.random() * 3000,  this.getPosition().z);
+                case 'dance1':
+                    groups[i].group.position.z = (Math.cos(count/40) * 1300) + 0;
+                    groups[i].group.position.y = (Math.sin(count/40) * 800) + 100;
+                    break;
             }
         }
 
@@ -248,14 +260,53 @@ class Experience extends EventEmitter {
         cameraViewProjectionMatrix.multiplyMatrices( camera.projectionMatrix, camera.matrixWorldInverse );
         frustrum.setFromMatrix( cameraViewProjectionMatrix );
 
-       /* switch (true) {
-            case frustrum.intersectsSprite( three.getObject('twerk')):
-                //console.log('intersecting puggerfly');
-                break;
-        }*/
+        if (frustrum.intersectsSprite( three.getObject('twerk1'))) {
+            if (!INTERSECTED) {
+                INTERSECTED = true;
+                hiya_timeout = setTimeout(()=> {
+                    this.putInFrontOfCamera(hiya);
+                    this.showNotification(notifications.selfie, 0);
+                    console.log('intersecting puggerfly');
+                    end_timeout = setTimeout(()=> {
+                        this.emit('selfie_time');
+                    }, 3000);
+                }, 2000);
+            }
+        } else {
+            INTERSECTED = false;
+            this.hideHiya(hiya);
+            clearTimeout(hiya_timeout);
+        }
+
         // for every sprite on the screen {sprite, id}
         let obj_onscreen = {};
         for (let i=0; i<scene_sprites.length; i++) {
+
+            switch (scene_sprites[i].id) {
+                case 'twerk1':
+                    if (hiya) {
+                        // this.putInFrontOfCamera(hiya);
+                    }
+                    break;
+                default:
+                    if (count % groups[i].disappear == 0) {
+                        if (!hiding) {
+                            hiding = true;
+                            three.hideObject(scene_sprites[i].id);
+                            setTimeout(()=> {
+                                hiding = false;
+                                if (scene_sprites[i].canvas == 'skipping') {
+                                    groups[i].spr.position.set(this.getPosition().x, 0,  this.getPosition().z);
+                                } else {
+                                    groups[i].spr.position.set(this.getPosition().x, Math.random() * 3000,  this.getPosition().z);
+                                }
+
+                            }, 1300);
+                        }
+                    }
+
+            }
+
             sprites.getSprite(scene_sprites[i].canvas).render = false;
             if (frustrum.intersectsSprite( three.getObject(scene_sprites[i].id)) ) {
                 obj_onscreen[scene_sprites[i].canvas] = sprites.getSprite(scene_sprites[i].canvas);
@@ -270,6 +321,7 @@ class Experience extends EventEmitter {
 
     showNotification(s, delay) {
         TweenMax.set('.experience__notification', {y: -100, alpha: 0});
+        $('.experience__notification div').text(s);
         $('.experience__notification').show();
         TweenMax.to('.experience__notification', 1, {y: 0, alpha:1, ease:Back.easeOut, delay: delay});
     }
