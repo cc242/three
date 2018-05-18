@@ -11,7 +11,7 @@ import TweenMax from 'gsap';
 import Sharing from './creative/Sharing';
 const sharing = new Sharing();
 let visualisation;
-let camera_permission_granted;
+let camera_permission_granted, camera_position_requested;
 let overlay_index = 0;
 let app;
 let shortenedShareURL;
@@ -139,7 +139,7 @@ var creative = {
         switch(id) {
             case screens.experience:
                 visualisation.enable();
-                visualisation.start();
+                visualisation.start(camera_permission_granted);
                 break;
             case screens.selfie:
                 $('.experience').hide();
@@ -157,17 +157,22 @@ var creative = {
             var self = this;
             WebARCamera.camera.addEventListener("camera_event", function(e) {
                 console.log('%ccamera_event: ' + e.detail, 'background: #222; color: #fff');
+                if (camera_position_requested) return;
+                camera_position_requested = true;
                 switch (e.detail) {
                     case 'NotAllowedError':
                         trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                        self.showPage(screens.experience);
+
                         break;
                     case 'PermissionDeniedError':
                         trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                        self.showPage(screens.experience);
                         break;
                     case 'PermissionGranted':
                         trackMe(tracked_events.GRANT_CAMERA_ACCESS);
-                        TweenMax.set(['.test'], {transformPerspective:400, rotationY:90, transformOrigin: "50% 50%"});
-                        TweenMax.to(['.test'], 0.5, {transformPerspective:400, rotationY:0, delay: 0, transformOrigin: "50% 50%"});
+                        // TweenMax.set(['.test'], {transformPerspective:400, rotationY:90, transformOrigin: "50% 50%"});
+                        // TweenMax.to(['.test'], 0.5, {transformPerspective:400, rotationY:0, delay: 0, transformOrigin: "50% 50%"});
                         if (!camera_permission_granted) {
                             camera_permission_granted = true
                             self.showPage(screens.experience);
@@ -175,9 +180,11 @@ var creative = {
                         break;
                     case 'NotSupportedError':
                         trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                        self.showPage(screens.experience);
                         break;
                     default:
                         trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                        self.showPage(screens.experience);
                 }
             });
         }, 1000);
@@ -485,7 +492,7 @@ var creative = {
         TweenMax.to('.experience__notification', 1, {y: -100, alpha:0, ease:Back.easeOut});
     }
 };
-creative.init({container:'#container', width: 320, height: 568, gyro: true});
+creative.init({container:'#container', width: 320, height: 568, gyro: false});
 
 export default creative;
 

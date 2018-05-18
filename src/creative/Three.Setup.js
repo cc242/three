@@ -125,7 +125,9 @@ class ThreeSetup extends EventEmitter {
                     objects[id].material = obj_materials[id]
                 }, 200);
             }});
-
+    }
+    noCamera() {
+        scene.add( gridHelper );
     }
 
 }

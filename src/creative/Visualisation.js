@@ -46,9 +46,11 @@ class Experience extends EventEmitter {
         this.config = config;
         this.init()
     }
-    start(hidegrid) {
+    start(camera_enabled) {
         this.showNotification(notifications.intro, 1);
-        this.hidegrid = hidegrid;
+        if (!camera_enabled) {
+            three.noCamera();
+        }
     }
     init() {
         three = new ThreeSetup(this.config);
@@ -57,10 +59,6 @@ class Experience extends EventEmitter {
         stats = three.getStats();
         camera = three.getCamera();
         renderer = three.getRenderer();
-
-        if (this.hidegrid) {
-            three.hidegrid();
-        }
 
         scene.add(object);
 
@@ -276,8 +274,7 @@ class Experience extends EventEmitter {
                     this.showNotification(notifications.selfie, 0);
                     console.log('intersecting puggerfly');
                     end_timeout = setTimeout(()=> {
-                        this.emit('selfie_time');
-                        trackMe(tracked_events.FOUND_PUGGERFLY);
+                        this.foundPuggerfly();
                     }, 1700);
                 }, 2000);
             }
@@ -327,7 +324,11 @@ class Experience extends EventEmitter {
                 }
         stats.end();
     }
-
+    foundPuggerfly() {
+        this.emit('selfie_time');
+        trackMe(tracked_events.FOUND_PUGGERFLY);
+        this.disable();
+    }
     showNotification(s, delay) {
         TweenMax.set('.experience__notification', {y: -100, alpha: 0});
         $('.experience__notification div').text(s);
