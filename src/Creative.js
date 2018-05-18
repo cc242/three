@@ -1,9 +1,11 @@
-/*global WebARCamera Back main mask Popcorn */
+/*global WebARCamera Back Elastic Quad main mask Popcorn Bounce*/
 import Visualisation from './creative/Visualisation';
 import Layout from './core/layout';
 import loadJS from 'load-js';
 import * as $ from "jquery";
+import * as PIXI from 'pixi.js';
 import { flashIn, blur } from './creative/Effects';
+import { trackMe, tracked_events } from "./creative/Tracking";
 import Hammer from 'hammerjs';
 import TweenMax from 'gsap';
 import Sharing from './creative/Sharing';
@@ -11,6 +13,18 @@ const sharing = new Sharing();
 let visualisation;
 let camera_permission_granted;
 let overlay_index = 0;
+let app;
+let shortenedShareURL;
+let pug1 = require('./img/pug1.png');
+let pug2 = require('./img/pug2.png');
+let pug3 = require('./img/pug3.png');
+let pugs = [pug1, pug2, pug3];
+let filter1 = require('./img/filter1.png');
+let filter2 = require('./img/filter2.png');
+let filter3 = require('./img/filter3.png');
+let filter4 = require('./img/filter4.png');
+let filters = [filter1, filter2, filter3, filter4];
+let touch_screen_timeout;
 let screens = {
     intro: {
         container: '.intro'
@@ -41,9 +55,6 @@ var creative = {
         }
         this.config = Object.create(this.defaults, this.options);
 
-        let layout = new Layout(this.config);
-
-
         /**
          * Load Three.js scripts here as they aren't well supported on npm
          */
@@ -73,27 +84,52 @@ var creative = {
             let loadObj = {async: false, url: value};
             loadArray.push(loadObj);
         }
+
+        let layout = new Layout(this.config);
+        let hasInit;
         loadJS( loadArray )
             .then(() => {
-                console.log("scripts loaded");
-                this.start();
+                console.log("scripts loaded", layout.isPortrait());
+                if (layout.isPortrait()) {
+                    this.start();
+                } else {
+                    layout.on('layout_resize', ()=> {
+                        if (hasInit) return;
+                        if (layout.isPortrait()) {
+                            hasInit = true;
+                            this.start();
+                        }
+                    });
+                }
             });
     },
     start() {
         this.showPage(screens.intro)
         visualisation = new Visualisation(this.config);
 
+        $('.cta').on('touchend click', (e) => {
+            e.preventDefault();
+            this.disableCTA();
+        });
+
         $('.intro__cta').on('touchend click', (e)=> {
+            trackMe(tracked_events.TRY_IT_NOW);
             e.preventDefault();
             $('.intro__cta').off();
             $('.intro__prompt').fadeIn();
             //this.showPage(screens.experience);
             this.initCamera();
         });
-
+        this.loadAnim();
         visualisation.on('selfie_time', ()=> {
             this.showSelfie();
         });
+    },
+    disableCTA() {
+        $('.cta').css("pointer-events", "none");
+        setTimeout(()=> {
+            $('.cta').css("pointer-events", "auto");
+        }, 2000)
     },
     showPage(id) {
         for (const [key] of Object.entries(screens)) {
@@ -102,6 +138,7 @@ var creative = {
                 }
         switch(id) {
             case screens.experience:
+                visualisation.enable();
                 visualisation.start();
                 break;
             case screens.selfie:
@@ -122,12 +159,13 @@ var creative = {
                 console.log('%ccamera_event: ' + e.detail, 'background: #222; color: #fff');
                 switch (e.detail) {
                     case 'NotAllowedError':
-                        alert('denied');
+                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
                         break;
                     case 'PermissionDeniedError':
-                        alert('denied');
+                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
                         break;
                     case 'PermissionGranted':
+                        trackMe(tracked_events.GRANT_CAMERA_ACCESS);
                         TweenMax.set(['.test'], {transformPerspective:400, rotationY:90, transformOrigin: "50% 50%"});
                         TweenMax.to(['.test'], 0.5, {transformPerspective:400, rotationY:0, delay: 0, transformOrigin: "50% 50%"});
                         if (!camera_permission_granted) {
@@ -136,15 +174,35 @@ var creative = {
                         }
                         break;
                     case 'NotSupportedError':
-                        alert('denied');
+                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
                         break;
+                    default:
+                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
                 }
             });
         }, 1000);
     },
     showSelfie() {
+
+        /*$('#shareimage').on('touchstart', (e)=> {
+
+            console.log('start');
+            touch_screen_timeout = setTimeout(()=> {
+                trackMe(tracked_events.SAVE_PHOTO);
+            }, 1000);
+        });
+        $('#shareimage').on('touchend', (e)=> {
+
+            console.log('end')
+            clearTimeout(touch_screen_timeout);
+        });*/
         this.showPage(screens.selfie);
+        visualisation.disable();
         WebARCamera.camera.addCameraStream('user');
+        //this.showNotification('Take a selfie!', 1);
+        setTimeout(()=> {
+            this.hideNotification();
+        },3000);
 
         if (checkIOS()) {
             this.iosVideo();
@@ -168,69 +226,88 @@ var creative = {
             this.takePhoto();
         });
 
-        $('.end_buttons__save').on('touchend click', (e)=> {
+        $('.end_buttons__finish').on('touchend click', (e)=> {
             e.preventDefault();
             this.savePhoto();
         });
 
         $('.end_buttons__retake').on('touchend click', (e)=> {
             e.preventDefault();
-            // this.retakePhoto();
+            this.retakePhoto();
         });
+
+
+
         $('.selfie__overlay').hide();
     },
     retakePhoto() {
+
+        trackMe(tracked_events.TAKE_A_NEW_SELFIE);
         $('#vid').css('opacity', 1);
         $('#c2').css('opacity', 1);
-        $('.selfie__grid').fadeIn();
+        $('#webar_video').css('opacity', 1);
+        // $('.selfie__overlay').css('background-image', 'none');
         $('.selfie__button').fadeIn();
-        clearCanvas(document.getElementById('#c'));
-        clearCanvas(document.getElementById('#c2'));
-        TweenMax.to('.selfie', 0.5, {scaleX: 1, scaleY: 1, delay: 1, ease:Back.easeOut});
+        $('.selfie__grid').fadeIn();
+        $('.selfie__overlay').hide();
+        $('.selfie__overlay').css('background-image', filter1);
+        $('.pixi_container').css('opacity', 1);
+        $('#shareimage').hide();
+        if (checkIOS()) {
+            app._ticker.start();
+        }
+
+        clearCanvas('#c');
+        clearCanvas('#myCanvas');
+        clearCanvas('#sharecanvas');
+
+        TweenMax.to('.selfie', 0.5, {scaleX: 1, scaleY: 1, ease:Back.easeOut});
         $('body').removeClass('white');
         $('.end_buttons').fadeOut();
     },
     takePhoto() {
+        let self = this;
+        $('.experience__notification').hide();
+        setTimeout(()=> {
+            $('.selfie__instructions').fadeIn();
+        }, 1000);
+        setTimeout(()=> {
+            $('.selfie__instructions').fadeOut();
+        }, 2500);
+        trackMe(tracked_events.TAKE_PHOTO);
         WebARCamera.camera.capture().then((data) => {
             $('#webar_video').css('opacity', 0);
+
+            if (checkIOS()) {
+                app._ticker.stop();
+                $('.pixi_container').css('opacity', 0);
+            }
             /**
              * Add camera to canvas
              */
             setTimeout(()=> {
-                this.addVideoToCanvas2('webar_video', 'c');
+                this.addVideoToCanvas('webar_video', 'c');
             }, 110);
             /**
              * Add pug to canvas
              */
             setTimeout(()=> {
-                if (checkIOS()) {
-                    addImageToCanvas(
-                        'img/pug'+ getRandom(1,3) +'.png',
-                        document.getElementById('c'),
-                        window.innerWidth,
-                        (window.innerWidth * 1.3333),
-                        0 ,0).then(()=> {
-
-                    });
-                } else {
-                    this.addVideoToCanvas('vid', 'c2');
-                }
+                addImageToCanvas(
+                    pug1,
+                    document.getElementById('c'),
+                    window.innerWidth,
+                    (window.innerWidth * 1.3333),
+                    0 ,0).then(()=> {
+                    self.combineImages();
+                });
             }, 120);
 
-            /**
-             * Combine
-             */
+
             setTimeout(()=> {
                 $('#vid').css('opacity', 0);
                 $('#c2').css('opacity', 0);
                 $('.selfie__grid').fadeOut();
                 $('.selfie__button').fadeOut();
-                addCanvasToCanvas(
-                    document.getElementById('c2'),
-                    document.getElementById('c'),
-                    window.innerWidth,
-                    (window.innerWidth * 1.3333),
-                    0 ,0);
                 flashIn('#c');
             }, 130);
             $('.selfie__overlay').show();
@@ -242,25 +319,64 @@ var creative = {
             let pinch = new Hammer.Pinch();
             let swipe = new Hammer.Swipe();
             mc.add([pinch, swipe]);
-            let self = this;
+
             mc.on("swipe", function(ev) {
+                trackMe(tracked_events.SWIPE_FILTERS);
                 if (ev.deltaX > 0) {
                     self.changeProduct(1);
                 } else {
                     self.changeProduct(-1);
                 }
+                setTimeout(()=> {
+                    self.combineImages();
+                }, 60)
             });
-            TweenMax.to('.selfie', 1, {scaleX: 0.95, scaleY: 0.9, delay: 1, ease:Back.easeOut});
+            TweenMax.to('.selfie', 1, {scaleX: 0.88, scaleY: 0.88, delay: 0.3, ease:Back.easeOut});
             $('body').addClass('white');
-            $('.end_buttons').fadeIn();
+
+            $('.end_buttons__finish').show();
+            $('.end_buttons__retake').show();
+
+            TweenMax.set('.end_buttons__finish', {y: 30, x:0, alpha: 0});
+            TweenMax.to('.end_buttons__finish', 0.5, {y: 0, delay: 1, ease:Bounce.easeOut});
+            TweenMax.to('.end_buttons__finish', 0.3, {alpha: 1, delay: 1});
+            TweenMax.set('.end_buttons__retake', {y: -30, alpha: 0});
+            TweenMax.to('.end_buttons__retake', 0.5, {y: 0, delay: 1, ease:Bounce.easeOut});
+            TweenMax.to('.end_buttons__retake', 0.3, {alpha: 1, delay: 1});
+
+            setTimeout(()=> {
+                self.combineImages();
+            }, 200);
+
+
         })
+    },
+    combineImages() {
+        var sharecanvas = document.getElementById("sharecanvas");
+        var ctx = sharecanvas.getContext("2d");
+        ctx.clearRect(0, 0, sharecanvas.width, sharecanvas.height);
+        addCanvasToCanvas(
+            document.getElementById('c'),
+            sharecanvas,
+            sharecanvas.width,
+            (sharecanvas.height),
+            0 ,0).then(()=> {
+            addImageToCanvas(
+                filters[this.getCurrentIndex()],
+                sharecanvas,
+                sharecanvas.width,
+                sharecanvas.height,
+                0 ,0).then(()=> {
+            });
+        });
     },
     changeProduct(idx) {
         overlay_index += idx;
         console.log('swipe', this.getCurrentIndex());
         TweenMax.set('.selfie__overlay', {x: (idx > 0 ? -200 : 200), alpha: 0});
         TweenMax.to('.selfie__overlay', 0.4, {alpha:1, x:0, ease: Back.easeOut});
-        $('.selfie__overlay').css('background-image', 'url(img/filter'+ (this.getCurrentIndex()+1) +'.png');
+        $('.selfie__overlay').css('background-image', 'url('+filters[overlay_index]+')');
+        console.log('', filters[overlay_index]);
     },
     getCurrentIndex() {
         if (overlay_index >= 4) {
@@ -270,17 +386,6 @@ var creative = {
         }
         return overlay_index;
     },
-    addVideoToCanvas2(video, canvas) {
-        let vid = document.getElementById(video);
-        let drawcanvas = document.getElementById(canvas);
-        let drawcanvas_ctx = drawcanvas.getContext('2d');
-        let domRect = document.getElementById(video).getBoundingClientRect();
-        let ypos = drawcanvas.height - domRect.height;
-        drawcanvas.width = window.innerWidth;
-        drawcanvas.height = window.innerWidth * 1.33333;
-        drawcanvas_ctx.drawImage(vid, 0, 0, domRect.width, domRect.height);
-
-    },
     addVideoToCanvas(video, canvas) {
         let vid = document.getElementById(video);
         let drawcanvas = document.getElementById(canvas);
@@ -289,7 +394,7 @@ var creative = {
         let ypos = drawcanvas.height - domRect.height;
         drawcanvas.width = window.innerWidth;
         drawcanvas.height = window.innerWidth * 1.33333;
-        drawcanvas_ctx.drawImage(vid, 0, drawcanvas.height-280, domRect.width, domRect.height);
+        drawcanvas_ctx.drawImage(vid, 0, 0, domRect.width, domRect.height);
     },
     draw(v,c,w,h) {
         if(v.paused || v.ended) return false;
@@ -297,18 +402,32 @@ var creative = {
         setTimeout(this.draw,20,v,c,w,h);
     },
     savePhoto() {
-        addImageToCanvas(
-            'img/filter'+ (this.getCurrentIndex()+1) +'.png',
-            document.getElementById('c'),
-            window.innerWidth,
-            (window.innerWidth * 1.3333),
-            0 ,0).then(()=> {
-            this.uploadImage();
-        });
+        trackMe(tracked_events.FINISH);
+        let imgdata = document.getElementById("sharecanvas").toDataURL("image/jpeg");
+        let shareimage = document.getElementById("shareimage");
+        $('#shareimage').attr('src', imgdata);
+        clearCanvas('#c');
+        // $('.selfie__overlay').css('background-image', 'none');
+        $(shareimage).show();
+        flashIn(shareimage);
+        TweenMax.to(shareimage, 0.1, {scaleX: 0.9, scaleY: 0.9, ease:Quad.easeOut})
+        TweenMax.to(shareimage, 1, {scaleX: 1, scaleY: 1, delay: 0.1, ease:Elastic.easeOut.config(2, 0.3)})
+
+        /**
+         * Show save instructions
+         */
+        TweenMax.to('.end_buttons__finish', 0.5, {x: -400, alpha: 0, delay: 0.1, ease:Quad.easeOut});
+        TweenMax.set('.end_buttons__save', {x: 200, alpha: 0});
+        $('.end_buttons__save').show();
+        TweenMax.to('.end_buttons__save', 0.5, {x: 0, delay: 0.2, ease:Bounce.easeOut});
+        TweenMax.to('.end_buttons__save', 0.3, {alpha: 1, delay: 0.2});
+
     },
     async uploadImage() {
         let result = await sharing.sendData($('#c').get(0).toDataURL("image/jpeg"));
         console.log(result);
+        window.open(result);
+        return;
         /**
          * Url vars
          * @type {string}
@@ -316,307 +435,57 @@ var creative = {
         let title = 'Oh Snap';
         let description = 'Oh Snap';
         let pic = result;
-        let shareurl = encodeURI('http://customiseyourgarden.herokuapp.com/?title='+ title +'&pic='+ pic +'&description='+description);
+        let shareurl = encodeURI('http://three-ohsnap.herokuapp.com/?title='+ title +'&pic='+ pic +'&description='+description);
         sharing.getShortURL(shareurl).then((res)=> {
-            let shortenedShareURL = res.data.url;
+            shortenedShareURL = res.data.url;
             console.log(shortenedShareURL);
-            window.open(shortenedShareURL)
+            $('.end_buttons').fadeIn();
         });
     },
+    loadAnim() {
+        //PIXI.loader.add('anim/pug_selfie.json');
+    },
     iosVideo() {
-        /*/!**
-         * This is the iOS video hack
-         *!/
-        let source = document.createElement('source');
-        $(source).attr('type', 'video/mp4');
-        $(source).attr('src', main);
-        $('#a').append(source);
-
-        let source2 = document.createElement('source');
-        $(source2).attr('type', 'video/mp4');
-        $(source2).attr('src', mask);
-        $('#b').append(source);
-
-        var videos = {
-                a: Popcorn("#a"),
-                b: Popcorn("#b"),
-            },
-            scrub = $("#scrub"),
-            loadCount = 0,
-            events = "play pause timeupdate seeking ended".split(/\s+/g);
-
-        setTimeout(()=> {
-            videos.a.play();
-        }, 2000);
-
-        // iterate both media sources
-        Popcorn.forEach(videos, function(media, type) {
-
-            // when each is ready...
-            media.on("canplayall", function() {
-
-                // trigger a custom "sync" event
-                this.emit("sync");
-
-                // set the max value of the "scrubber"
-                scrub.attr("max", this.duration());
-
-                // Listen for the custom sync event...
-            }).on("sync", function() {
-
-                // Once both items are loaded, sync events
-                if (++loadCount == 2) {
-
-                    // Iterate all events and trigger them on the video B
-                    // whenever they occur on the video A
-                    events.forEach(function(event) {
-
-                        videos.a.on(event, function() {
-                            // Avoid overkill events, trigger timeupdate manually
-                            if (event === "timeupdate") {
-
-                                if (!this.media.paused) {
-                                    return;
-                                }
-                                videos.b.emit("timeupdate");
-
-                                // update scrubber
-                                scrub.val(this.currentTime());
-
-                                return;
-                            }
-
-                            if (event === "seeking") {
-                                videos.b.currentTime(this.currentTime());
-                            }
-
-                            if (event === "play" || event === "pause") {
-                                videos.b[event]();
-                            }
-                            if (event === "ended") {
-                                console.log('end');
-                                videos.a.play();
-                                videos.b.play();
-                            }
-                        });
-                    });
-                }
-            });
+        app = new PIXI.Application(window.innerWidth, window.innerWidth/1.333, {
+            transparent: true,
+            forceCanvas: false
         });
+        document.querySelector('.pixi_container').appendChild(app.view);
 
-        function sync() {
-            if (videos.b.media.readyState === 4) {
-                videos.b.currentTime(
-                    videos.a.currentTime()
-                );
-            }
-            requestAnimationFrame(sync);
+        onAssetsLoaded();
+
+        function onAssetsLoaded()
+        {
+            // create an array of textures from an image path
+            var frames = [];
+            console.log('', PIXI.loader.resources['anim/pug_selfie.json'].data.frames);
+            let f = PIXI.loader.resources['anim/pug_selfie.json'].data.frames;
+            for (const [key] of Object.entries(f)) {
+                       let obj = f[key];
+                       frames.push(PIXI.Texture.fromFrame(key));
+                    }
+            var anim = new PIXI.extras.AnimatedSprite(frames);
+            anim.x = 0;
+            anim.y = -3;
+            anim.width = window.innerWidth;
+            anim.height = window.innerWidth / 1.3;
+            anim.animationSpeed = 0.2;
+            anim.play();
+            app.stage.addChild(anim);
+            console.log('', app);
         }
-
-        var canvas = document.getElementById('myCanvas'),
-            ctx = canvas.getContext('2d'),
-            video = document.getElementById('b'),
-            videocanvas = document.getElementById('videocanvas'),
-            videoctx = videocanvas.getContext('2d'),
-            video_main = document.getElementById('a');
-
-        function drawMask() {
-
-            videoctx.drawImage(video, 0, 0, 300, 224);
-
-            var imgd = videoctx.getImageData(0, 0, 300, 224),
-                pix = imgd.data,
-                i,n;
-
-            for (i = 0, n = pix.length; i < n; i += 4) {
-                pix[i + 3] = pix[i];
-            }
-
-            videoctx.putImageData(imgd, 0, 0, 0, 0, 300, 224);
-        }
-
-        function draw() {
-
-            ctx.globalCompositeOperation = 'source-over';
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = "#BAE858";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            try {
-                ctx.drawImage(video_main, 0, 0, 300, 224);
-            } catch (e) {
-                console.log(e)
-            }
-            ctx.globalCompositeOperation = 'destination-in';
-
-            drawMask();
-            ctx.drawImage(videocanvas, 0, 0, 300, 224);
-            requestAnimationFrame(draw);
-        }
-
-        requestAnimationFrame(draw);
-        sync();*/
-
-        let source = document.createElement('source');
-        $(source).attr('type', 'video/mp4');
-        $(source).attr('src', main);
-        $('#a').append(source);
-
-        source = document.createElement('source');
-        $(source).attr('type', 'video/mp4');
-        $(source).attr('src', mask);
-        $('#b').append(source);
-
-        var videos = {
-                a: Popcorn("#a"),
-                b: Popcorn("#b"),
-            },
-            scrub = $("#scrub"),
-            loadCount = 0,
-            events = "play pause timeupdate seeking ended".split(/\s+/g);
-
-        videos.a.play();
-        // iterate both media sources
-        Popcorn.forEach(videos, function(media, type) {
-
-            // when each is ready...
-            media.on("canplayall", function() {
-
-                // trigger a custom "sync" event
-                this.emit("sync");
-
-                // set the max value of the "scrubber"
-                scrub.attr("max", this.duration());
-
-                // Listen for the custom sync event...
-            }).on("sync", function() {
-
-                // Once both items are loaded, sync events
-                if (++loadCount == 2) {
-
-                    // Iterate all events and trigger them on the video B
-                    // whenever they occur on the video A
-                    events.forEach(function(event) {
-
-                        videos.a.on(event, function() {
-                            // Avoid overkill events, trigger timeupdate manually
-                            if (event === "timeupdate") {
-
-                                if (!this.media.paused) {
-                                    return;
-                                }
-                                videos.b.emit("timeupdate");
-
-                                // update scrubber
-                                scrub.val(this.currentTime());
-
-                                return;
-                            }
-
-                            if (event === "seeking") {
-                                videos.b.currentTime(this.currentTime());
-                            }
-
-                            if (event === "play" || event === "pause") {
-                                videos.b[event]();
-                            }
-                            if (event === "ended") {
-                                console.log('end');
-                                videos.a.play();
-                                videos.b.play();
-                            }
-                        });
-                    });
-                }
-            });
-        });
-
-        function sync() {
-            if (videos.b.media.readyState === 4) {
-                videos.b.currentTime(
-                    videos.a.currentTime()
-                );
-            }
-            requestAnimationFrame(sync);
-        }
-        sync();
-
-        var canvas = document.getElementById('myCanvas'),
-            ctx = canvas.getContext('2d'),
-            video = document.getElementById('b'),
-            videocanvas = document.getElementById('videocanvas'),
-            videoctx = videocanvas.getContext('2d'),
-            video_main = document.getElementById('a');
-
-        ctx.fillStyle = "blue";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        function drawMask() {
-
-            videoctx.drawImage(video, 0, 0, 300, 224);
-
-            var imgd = videoctx.getImageData(0, 0, 300, 224),
-                pix = imgd.data,
-                i, n;
-
-            for (i = 0, n = pix.length; i < n; i += 4) {
-                pix[i + 3] = pix[i];
-            }
-
-            videoctx.putImageData(imgd, 0, 0, 0, 0, 300, 224);
-        }
-
-        function draw() {
-            ctx.fillStyle = "blue";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            console.log('drawing');
-
-            ctx.globalCompositeOperation = 'source-over';
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = "#BAE858";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            try {
-                ctx.drawImage(video_main, 0, 0, 300, 224);
-            } catch (e) {
-                console.log(e)
-            }
-            ctx.globalCompositeOperation = 'destination-in';
-
-            drawMask();
-            ctx.drawImage(videocanvas, 0, 0, 300, 224);
-
-            requestAnimationFrame(draw);
-
-        }
-
-        function update() {
-
-            const playPromise = video_main.play();
-            if (playPromise !== null){
-                playPromise.catch(() => {
-                    video_main.pause();
-                    video.currentTime = video_main.currentTime;
-                    video_main.play(); })
-            }
-            const playPromise2 = video.play();
-            if (playPromise !== null){
-                playPromise.catch(() => {
-                    video.pause();
-                    video.currentTime = video_main.currentTime;
-                    video.play(); })
-            }
-            requestAnimationFrame(update);
-        }
-        requestAnimationFrame(draw);
-        //requestAnimationFrame(update);
+    },
+    showNotification(s, delay) {
+        TweenMax.set('.experience__notification', {y: -100, alpha: 0});
+        $('.experience__notification div').text(s);
+        $('.experience__notification').show();
+        TweenMax.to('.experience__notification', 1, {y: 0, alpha:1, ease:Back.easeOut, delay: delay});
+    },
+    hideNotification() {
+        TweenMax.to('.experience__notification', 1, {y: -100, alpha:0, ease:Back.easeOut});
     }
 };
-
+creative.init({container:'#container', width: 320, height: 568, gyro: true});
 
 export default creative;
 
@@ -683,26 +552,12 @@ function addCanvasToCanvas2(canvas1, canvas2, width, height, left, top) {
  * @param canvas
  */
 function clearCanvas(canvas) {
-    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+    let c =document.querySelector(canvas);
+    let ctx = c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
 }
 
-/**
- * One Creative tracking bridge
- * @param name
- */
-function trackMe(name) {
-    console.log('tracking: ', name);
-    try {
-        var event = new CustomEvent("tracking", {
-            detail: {
-                label: name
-            }
-        });
-        window.dispatchEvent(event);
-    } catch(e) {
-        console.log('Failed to track', name, e);
-    }
-}
+
 function checkIOS() {
     var iOS = parseFloat(
         ('' + (/CPU.*OS ([0-9_]{1,5})|(CPU like).*AppleWebKit.*Mobile/i.exec(navigator.userAgent) || [0,''])[1])

@@ -12,8 +12,8 @@
     canvas {
       display: none;
     }
-    background-image: url("./img/rotate_ico.png");
-    background-size: auto;
+    background-image: url("./img/landscape.jpg");
+    background-size: contain;
     background-color: white;
     background-repeat: no-repeat;
     background-position: 50% 50%;
@@ -22,10 +22,13 @@
     canvas {
       display: none;
     }
-    background-image: url("./img/rotate_ico.png");
-    background-size: auto;
+    background-image: url("./img/landscape.jpg");
+    background-size: contain;
     background-color: white;
     background-repeat: no-repeat;
     background-position: 50% 50%;
+  }
+  .end_buttons, .page, video {
+    display: none; opacity: 0;
   }
 }

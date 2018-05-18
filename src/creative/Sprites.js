@@ -28,6 +28,7 @@ class Sprites extends EventEmitter {
             PIXI.loader.load(onAssetsLoaded);
 
             function onAssetsLoaded() {
+                PIXI.loader.add('anim/pug_selfie.json');
                 /**
                  * Loop over each spritesheet and create an animated sprite
                  * and position them on the canvas.

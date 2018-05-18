@@ -4,13 +4,14 @@ import {EventEmitter} from 'events';
 import ThreeSetup from './Three.Setup';
 import Sprites from "./Sprites";
 import * as $ from "jquery";
+import { trackMe, tracked_events } from "./Tracking";
 
 let three, sprites, paused;
 let scene, object, stats, camera, renderer;
 let INTERSECTED, raycaster, mouse, frustrum, cameraViewProjectionMatrix, intersect_timeout, hiding;
 let groups;
 let count = 0;
-let hiya, hiya_timeout, end_timeout;
+let hiya, hiya_timeout, end_timeout, animating;
 let multiples = 4;
 let notifications = {
   intro: 'Look around to find Puggerfly.',
@@ -29,11 +30,11 @@ let arr_assets = [
     {json: 'anim/twerk_small.json', id: 'twerk'}
 ];
 let arr_images = [
-    {img: 'img/heart-blue.png', id: 'heart-blue'},
-    {img: 'img/heart-red.png', id: 'heart-red'},
-    {img: 'img/heart-yellow.png', id: 'heart-yellow'},
-    {img: 'img/heart-green.png', id: 'heart-green'},
-    {img: 'img/heart-purple.png', id: 'heart-purple'}
+    {img: require('../img/heart-blue.png'), id: 'heart-blue'},
+    {img: require('../img/heart-red.png'), id: 'heart-red'},
+    {img: require('../img/heart-yellow.png'), id: 'heart-yellow'},
+    {img: require('../img/heart-green.png'), id: 'heart-green'},
+    {img: require('../img/heart-purple.png'), id: 'heart-purple'}
 ];
 
 
@@ -45,8 +46,9 @@ class Experience extends EventEmitter {
         this.config = config;
         this.init()
     }
-    start() {
+    start(hidegrid) {
         this.showNotification(notifications.intro, 1);
+        this.hidegrid = hidegrid;
     }
     init() {
         three = new ThreeSetup(this.config);
@@ -56,6 +58,9 @@ class Experience extends EventEmitter {
         camera = three.getCamera();
         renderer = three.getRenderer();
 
+        if (this.hidegrid) {
+            three.hidegrid();
+        }
 
         scene.add(object);
 
@@ -160,7 +165,7 @@ class Experience extends EventEmitter {
 
         for (let i=0; i<20; i++) {
             for (let i = 0; i < arr_images.length; i++) {
-                let imgTexture = THREE.ImageUtils.loadTexture(arr_images[i]['img']);
+                let imgTexture = THREE.ImageUtils.loadTexture( arr_images[i]['img']);
                 let imgMaterial = new THREE.SpriteMaterial({map: imgTexture, useScreenCoordinates: true});
                 let sprite = new THREE.Sprite(imgMaterial);
                 let angle = Math.random() * Math.PI * 2;
@@ -176,15 +181,11 @@ class Experience extends EventEmitter {
                 group.rotationspeed = ((i + 1) * (0.001) + 0.002);
             }
         }
-        let imgTexture = THREE.ImageUtils.loadTexture('./img/hiya.png');
+        let imgTexture = THREE.ImageUtils.loadTexture(require('../img/hiya.png'));
         let imgMaterial = new THREE.SpriteMaterial({map: imgTexture, useScreenCoordinates: true});
         hiya = new THREE.Sprite(imgMaterial);
         scene.add(hiya);
         hiya.scale.set(2560, 2560, 1.0);
-        setInterval(()=> {
-            // this.putInFrontOfCamera(sprite);
-            // this.putInFrontOfCamera(hiya);
-        }, 3000)
     }
     putOverPug(obj) {
         var pos =  three.getObject('twerk1').position;
@@ -218,11 +219,18 @@ class Experience extends EventEmitter {
         let zpos = Math.sin(angle)*radius;
         return {x: xpos, z: zpos};
     }
+    enable() {
+        animating = true;
+    }
+    disable() {
+        animating = false;
+    }
     animate() {
         stats.begin();
         three.animate();
         sprites.drawCanvas();
         requestAnimationFrame( this.animate.bind(this) );
+        if (!animating) return;
         // camera.position.y += 1
         count++;
 
@@ -269,7 +277,8 @@ class Experience extends EventEmitter {
                     console.log('intersecting puggerfly');
                     end_timeout = setTimeout(()=> {
                         this.emit('selfie_time');
-                    }, 3000);
+                        trackMe(tracked_events.FOUND_PUGGERFLY);
+                    }, 1700);
                 }, 2000);
             }
         } else {

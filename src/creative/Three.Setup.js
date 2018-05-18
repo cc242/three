@@ -2,7 +2,7 @@
 
 import {EventEmitter} from 'events';
 import TweenMax from 'gsap';
-var screenWidth, screenHeight, scene, renderer, camera, controls, stats
+var screenWidth, screenHeight, scene, renderer, camera, controls, stats, gridHelper;
 var arr_materials = [];
 var obj_materials = [];
 var objects = {};
@@ -47,7 +47,7 @@ class ThreeSetup extends EventEmitter {
         }
         let size = 20000;
         let divisions = 50;
-        let gridHelper = new THREE.GridHelper( size, divisions, 0x3b3b3b, 0x3b3b3b );
+        gridHelper = new THREE.GridHelper( size, divisions, 0x3b3b3b, 0x3b3b3b );
         // scene.add( gridHelper );
         gridHelper.position.y = -300;
         gridHelper.position.x = 5;
@@ -63,6 +63,9 @@ class ThreeSetup extends EventEmitter {
         scene.add( directionalLight );
 
         // this.animate();
+    }
+    hideGrid() {
+        scene.remove( gridHelper );
     }
     // this is called from Visualisation
     animate() {

@@ -45,6 +45,9 @@ body {
   // font-weight: bold;
   font-style: normal;*/ }
 
+body, html {
+  height: 100%; }
+
 body {
   background-color: #000;
   transition: 0.5s all; }
@@ -66,6 +69,8 @@ body {
   z-index: 8; }
 
 .hide {
+  width: 1px;
+  height: 1px;
   display: block;
   opacity: 0;
   pointer-events: none;
@@ -149,7 +154,9 @@ video {
   height: 100%;
   width: 100%;
   z-index: 1;
-  display: none; }
+  display: none;
+  overflow: visible;
+  overflow: visible; }
   .selfie video {
     pointer-events: none;
     top: auto;
@@ -157,7 +164,6 @@ video {
     width: 100%;
     transform: none; }
   .selfie__grid {
-    display: none;
     position: absolute;
     z-index: 2;
     height: 100%;
@@ -216,7 +222,19 @@ video {
     background-image: url(./img/filter1.png);
     background-size: contain;
     opacity: 0;
-    z-index: 4; }
+    z-index: 4;
+    overflow: hidden; }
+  .selfie__instructions {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    background-image: url(./img/filter-swipe-cue.png);
+    background-size: contain;
+    opacity: 1;
+    z-index: 4;
+    overflow: hidden;
+    display: none; }
 
 #videl {
   z-index: 2;
@@ -263,7 +281,7 @@ video {
   height: 100%; }
 
 .white {
-  background-color: #ffffff;
+  background-color: #efefef;
   transition: 0.5s all; }
 
 .end_buttons {
@@ -280,29 +298,41 @@ video {
     display: none;
     position: absolute;
     height: 32px;
-    width: 276px;
+    width: 100%;
     background-image: url(./img/take_new_selfie.png);
-    background-size: inherit;
+    background-size: auto 17px;
     background-repeat: no-repeat;
-    background-position: 0 0;
-    top: 10px;
-    left: 5px;
-    transform: scale(0.8); }
+    background-position: center;
+    top: -45px;
+    left: 5px; }
+  .end_buttons__finish {
+    z-index: 4;
+    display: none;
+    position: absolute;
+    height: 36px;
+    width: 100%;
+    background-image: url(./img/finish.png);
+    background-size: auto 30px;
+    background-repeat: no-repeat;
+    background-position: center;
+    bottom: -45px;
+    left: 0;
+    right: 0;
+    margin: auto; }
   .end_buttons__save {
     z-index: 4;
     display: none;
     position: absolute;
     height: 36px;
-    width: 238px;
-    background-image: url(./img/save-photo.png);
-    background-size: inherit;
+    width: 100%;
+    background-image: url(./img/save.png);
+    background-size: auto 30px;
     background-repeat: no-repeat;
-    background-position: 0 0;
-    bottom: 20px;
+    background-position: center;
+    bottom: -45px;
     left: 0;
     right: 0;
-    margin: auto;
-    transform: scale(0.8); }
+    margin: auto; }
 
 #videl, #maskel {
   display: none; }
@@ -313,9 +343,41 @@ video {
   bottom: 0;
   left: 0; }
 
+.pixi_container {
+  position: absolute;
+  background-size: contain;
+  background-repeat: no-repeat;
+  height: 100%;
+  width: 100%; }
+  .pixi_container canvas {
+    position: absolute;
+    bottom: 0; }
+
+canvas {
+  left: 0; }
+
+#a, #b {
+  width: 1px;
+  height: 1px; }
+
+#shareimage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: none;
+  width: 100%;
+  height: 100%; }
+
+#sharecanvas {
+  z-index: 2;
+  width: 160px;
+  display: block;
+  opacity: 0; }
+
 .landscape .container {
-  background-image: url("./img/rotate_ico.png");
-  background-size: auto;
+  background-image: url("./img/landscape.jpg");
+  background-size: contain;
   background-color: white;
   background-repeat: no-repeat;
   background-position: 50% 50%; }
@@ -323,10 +385,14 @@ video {
     display: none; }
 
 .landscape .rescale_reposition {
-  background-image: url("./img/rotate_ico.png");
-  background-size: auto;
+  background-image: url("./img/landscape.jpg");
+  background-size: contain;
   background-color: white;
   background-repeat: no-repeat;
   background-position: 50% 50%; }
   .landscape .rescale_reposition canvas {
     display: none; }
+
+.landscape .end_buttons, .landscape .page, .landscape video {
+  display: none;
+  opacity: 0; }

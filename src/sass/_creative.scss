@@ -5,6 +5,9 @@
   height: 100%;
   width: 100%;
 }
+body, html {
+  height: 100%;
+}
 body {
   background-color: #000;
   transition: 0.5s all;
@@ -26,7 +29,8 @@ body {
   z-index: 8;
 }
 .hide {
-  //
+  width: 1px;
+  height: 1px;
   display: block;
   opacity: 0;
   pointer-events: none;
@@ -109,6 +113,8 @@ video {
   @include fullscreen();
   z-index: 1;
   display: none;
+  overflow: visible;
+  overflow: visible;
   video {
     pointer-events: none;
     top: auto;
@@ -117,7 +123,7 @@ video {
     transform: none;
   }
   &__grid {
-    display: none;
+    //display: none;
     position: absolute;
     z-index: 2;
     height: 100%;
@@ -187,6 +193,19 @@ video {
     background-size: contain;
     opacity: 0;
     z-index: 4;
+    overflow: hidden;
+  }
+  &__instructions {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    background-image: url(./img/filter-swipe-cue.png);
+    background-size: contain;
+    opacity: 1;
+    z-index: 4;
+    overflow: hidden;
+    display: none;
   }
 }
 #videl {
@@ -229,7 +248,7 @@ video {
   height: 100%;
 }
 .white {
-  background-color: #ffffff;
+  background-color: #efefef;
   transition: 0.5s all;
 }
 .end_buttons {
@@ -242,30 +261,43 @@ video {
     display: none;
     position: absolute;
     height: 32px;
-    width: 276px;
+    width: 100%;
     background-image: url(./img/take_new_selfie.png);
-    background-size: inherit;
+    background-size: auto 17px;
     background-repeat: no-repeat;
-    background-position: 0 0;
-    top: 10px;
+    background-position: center;
+    top: -45px;
     left: 5px;
-    transform: scale(0.8);
+  }
+  &__finish {
+    z-index: 4;
+    display: none;
+    position: absolute;
+    height: 36px;
+    width: 100%;
+    background-image: url(./img/finish.png);
+    background-size: auto 30px;
+    background-repeat: no-repeat;
+    background-position: center;
+    bottom: -45px;
+    left: 0;
+    right: 0;
+    margin: auto;
   }
   &__save {
     z-index: 4;
     display: none;
     position: absolute;
     height: 36px;
-    width: 238px;
-    background-image: url(./img/save-photo.png);
-    background-size: inherit;
+    width: 100%;
+    background-image: url(./img/save.png);
+    background-size: auto 30px;
     background-repeat: no-repeat;
-    background-position: 0 0;
-    bottom: 20px;
+    background-position: center;
+    bottom: -45px;
     left: 0;
     right: 0;
     margin: auto;
-    transform: scale(0.8);
   }
 }
 #videl, #maskel {
@@ -276,4 +308,33 @@ video {
   position: absolute;
   bottom: 0;
   left: 0;
+}
+.pixi_container {
+  @include fullscreen();
+  canvas {
+    position: absolute;
+    bottom: 0;
+  }
+}
+canvas {
+  left: 0; // One C
+}
+#a, #b {
+  width: 1px;
+  height: 1px;
+}
+#shareimage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+#sharecanvas {
+  z-index: 2;
+  width: 160px;
+  display: block;
+  opacity: 0;
 }

@@ -9,15 +9,23 @@ class Layout extends EventEmitter {
         console.log('layout constructor: ', _config);
         _width = _config.width;
         _height = _config.height;
+        if (_config.fullscreen) {
+            document.querySelector('.rescale_reposition').style.left = 0;
+            document.querySelector('.rescale_reposition').style.top = 0;
+            return;
+        }
         this.init(_config);
         this.saveDimensions();
         window.addEventListener('resize', this.resize.bind(this));
         this.resize();
+        // this is a temp fix for iPhone X
+        setTimeout(this.resize.bind(this), 1000);
     }
     init(config) {
+        console.log(' this.config',  this.config);
         this.config = {
-            height: this.isPortrait() ? config.height : config.width,
-            width:  this.isPortrait() ? config.width : config.height,
+            height: this.isPortrait() ? _height : _width,
+            width:  this.isPortrait() ? _width : _height,
             container: config.container
         }
     }
@@ -28,6 +36,7 @@ class Layout extends EventEmitter {
         } else {
             portrait = true;
         }
+
         return portrait;
     }
     saveDimensions() {
@@ -35,6 +44,7 @@ class Layout extends EventEmitter {
         savedDimensions.h = this.isPortrait() ? window.innerHeight : window.innerWidth;
     }
     resize() {
+        this.emit('layout_resize');
         if (this.isPortrait()) {
             document.body.classList.add('portrait');
             document.body.classList.remove('landscape');
@@ -50,7 +60,7 @@ class Layout extends EventEmitter {
         this.init(this.config);
         this.saveDimensions();
 
-        // this fixes in-app resizing on iphone x
+        // this fixes in-app resizing on iPhone x
         var newWidth = this.isPortrait() ? savedDimensions.w : savedDimensions.h;
         var newHeight = this.isPortrait() ? savedDimensions.h : savedDimensions.w;
 
@@ -63,7 +73,15 @@ class Layout extends EventEmitter {
             scale = this.config.width / newWidth;
         }
 
-        document.querySelector(this.config.container).style.transform = 'scale('+ 1/scale +') translateX(-50%) translateY(-50%)';
+        //document.querySelector(this.config.container).style.transform = 'scale('+ 1/scale +') translateX(-50%) translateY(-50%)';
+        // document.querySelector(this.config.container).style.transform = 'scale('+ 1/scale +') translateY(-50%)';
+        document.querySelector(this.config.container).style.transform = 'scale('+ 1 +') translateY(-50%)';
+        //document.querySelector(this.config.container).style.width = (320/scale)+'px';
+        document.querySelector(this.config.container).style.width = window.innerWidth+'px';
+        document.querySelector(this.config.container).style.height = window.innerHeight+'px';
+    }
+    getLayout() {
+        return this.isPortrait();
     }
 }
 
