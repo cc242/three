@@ -4,6 +4,7 @@ export let tracked_events = {
     GRANT_CAMERA_ACCESS: 'Grant camera access',
     DENY_CAMERA_ACCESS: 'Deny camera access',
     FOUND_PUGGERFLY: 'Found Puggerfly',
+    FOUND_PUGGERFLY_FALLBACK: 'Found Puggerfly Fallback',
     PUGGERFLY_TIMEOUT: 'Puggerfly timeout',
     TAKE_PHOTO: 'Take photo',
     RETURN_TO_WEBAR: 'Return to webAR',
@@ -18,7 +19,7 @@ export let tracked_events = {
  * @param name
  */
 export function trackMe(name) {
-    console.log('tracking: ', name);
+    console.log('%c Tracking: '+name+' ', 'background: #ffcc00; color: #000000');
     try {
         var event = new CustomEvent("tracking", {
             detail: {

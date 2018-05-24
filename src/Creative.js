@@ -14,6 +14,7 @@ let visualisation;
 let camera_permission_granted, camera_position_requested;
 let overlay_index = 0;
 let app;
+let started;
 let shortenedShareURL;
 let pug1 = require('./img/pug1.png');
 let pug2 = require('./img/pug2.png');
@@ -25,6 +26,7 @@ let filter3 = require('./img/filter3.png');
 let filter4 = require('./img/filter4.png');
 let filters = [filter1, filter2, filter3, filter4];
 let touch_screen_timeout;
+let selfie_shown;
 let screens = {
     intro: {
         container: '.intro'
@@ -68,6 +70,7 @@ var creative = {
             'scripts/three.min.js',
             'scripts/OrbitControls.js',
             'scripts/DeviceOrientationControls.js',
+            'scripts/Sky.js',
             'scripts/Stats.min.js'
         ];
         var arr_scripts_cdn_ios = [
@@ -76,6 +79,7 @@ var creative = {
             'scripts/DeviceOrientationControls.js',
             'scripts/Stats.min.js',
             'scripts/popcorn.min.js',
+            'scripts/Sky.js',
             'base64images.js'
         ];
 
@@ -124,109 +128,6 @@ var creative = {
         visualisation.on('selfie_time', ()=> {
             this.showSelfie();
         });
-    },
-    disableCTA() {
-        $('.cta').css("pointer-events", "none");
-        setTimeout(()=> {
-            $('.cta').css("pointer-events", "auto");
-        }, 2000)
-    },
-    showPage(id) {
-        for (const [key] of Object.entries(screens)) {
-                   $('.page').hide();
-                   $(id.container).fadeIn();
-                }
-        switch(id) {
-            case screens.experience:
-                visualisation.enable();
-                visualisation.start(camera_permission_granted);
-                break;
-            case screens.selfie:
-                $('.experience').hide();
-                break;
-        }
-    },
-    initCamera() {
-        setTimeout(()=> {
-            WebARCamera.camera.init({
-                camera: 'environment',
-                domElementID: 'webar_video',
-                debug: false
-            });
-
-            var self = this;
-            WebARCamera.camera.addEventListener("camera_event", function(e) {
-                console.log('%ccamera_event: ' + e.detail, 'background: #222; color: #fff');
-                if (camera_position_requested) return;
-                camera_position_requested = true;
-                switch (e.detail) {
-                    case 'NotAllowedError':
-                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
-                        self.showPage(screens.experience);
-
-                        break;
-                    case 'PermissionDeniedError':
-                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
-                        self.showPage(screens.experience);
-                        break;
-                    case 'PermissionGranted':
-                        trackMe(tracked_events.GRANT_CAMERA_ACCESS);
-                        // TweenMax.set(['.test'], {transformPerspective:400, rotationY:90, transformOrigin: "50% 50%"});
-                        // TweenMax.to(['.test'], 0.5, {transformPerspective:400, rotationY:0, delay: 0, transformOrigin: "50% 50%"});
-                        if (!camera_permission_granted) {
-                            camera_permission_granted = true
-                            self.showPage(screens.experience);
-                        }
-                        break;
-                    case 'NotSupportedError':
-                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
-                        self.showPage(screens.experience);
-                        break;
-                    default:
-                        trackMe(tracked_events.DENY_CAMERA_ACCESS);
-                        self.showPage(screens.experience);
-                }
-            });
-        }, 1000);
-    },
-    showSelfie() {
-
-        /*$('#shareimage').on('touchstart', (e)=> {
-
-            console.log('start');
-            touch_screen_timeout = setTimeout(()=> {
-                trackMe(tracked_events.SAVE_PHOTO);
-            }, 1000);
-        });
-        $('#shareimage').on('touchend', (e)=> {
-
-            console.log('end')
-            clearTimeout(touch_screen_timeout);
-        });*/
-        this.showPage(screens.selfie);
-        visualisation.disable();
-        WebARCamera.camera.addCameraStream('user');
-        //this.showNotification('Take a selfie!', 1);
-        setTimeout(()=> {
-            this.hideNotification();
-        },3000);
-
-        if (checkIOS()) {
-            this.iosVideo();
-            $('#vid').hide();
-        } else {
-
-        }
-
-        $('#webar_video').width(window.innerWidth);
-        $('#webar_video').height(window.innerWidth * 1.33333);
-        $('#webar_video').addClass('centered');
-
-        $('.selfie').width(window.innerWidth);
-        $('.selfie').height(window.innerWidth * 1.33333);
-        $('.selfie').addClass('centered_selfie');
-
-        $('.overlay').fadeOut();
 
         $('.selfie__button').on('touchend click', (e)=> {
             e.preventDefault();
@@ -243,9 +144,130 @@ var creative = {
             this.retakePhoto();
         });
 
+        $('.selfie__backtoar').on('touchend click', (e)=> {
+            e.preventDefault();
+            console.log('back to ar');
+            this.backToAR();
+        });
+    },
+    disableCTA() {
+        $('.cta').css("pointer-events", "none");
+        setTimeout(()=> {
+            $('.cta').css("pointer-events", "auto");
+        }, 2000)
+    },
+    showPage(id) {
+        $('.log').append('\nshowPage', id);
+        for (const [key] of Object.entries(screens)) {
+                   $('.page').hide();
+                   $(id.container).fadeIn();
+                }
+        switch(id) {
+            case screens.experience:
+                if (started) return;
+                $('.test').css('opacity', 1);
+                started = true;
+                visualisation.enable();
+                visualisation.start(camera_permission_granted);
+                break;
+            case screens.selfie:
+                $('.experience').hide();
+                break;
+        }
+    },
+    initCamera() {
+        setTimeout(()=> {
+            var self = this;
+            try {
+                WebARCamera.camera.init({
+                    camera: 'environment',
+                    domElementID: 'webar_video',
+                    debug: false
+                });
 
 
+                WebARCamera.camera.addEventListener("camera_event", function (e) {
+                    console.log('%ccamera_event: ' + e.detail, 'background: #222; color: #fff');
+                    if (camera_position_requested) return;
+                    camera_position_requested = true;
+                    switch (e.detail) {
+                        case 'NotAllowedError':
+                            trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                            self.showPage(screens.experience);
+
+                            break;
+                        case 'PermissionDeniedError':
+                            trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                            self.showPage(screens.experience);
+                            break;
+                        case 'PermissionGranted':
+                            trackMe(tracked_events.GRANT_CAMERA_ACCESS);
+                            if (!camera_permission_granted) {
+                                camera_permission_granted = true
+                                self.showPage(screens.experience);
+                            }
+                            break;
+                        case 'NotSupportedError':
+                            trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                            self.showPage(screens.experience);
+                            break;
+                        default:
+                            trackMe(tracked_events.DENY_CAMERA_ACCESS);
+                            self.showPage(screens.experience);
+                    }
+                });
+                // $('.log').append('\nok');
+            } catch(e) {
+                // $('.log').append('\nerror', e);
+                self.showPage(screens.experience);
+            }
+
+            /*setTimeout(()=> {
+                console.log('checking started', started);
+                $('.log').append('\nchecking', started);
+                if (!started) {
+                    let is_uiwebview = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent);
+                    self.showPage(screens.experience);
+                }
+            }, 1000);*/
+
+        }, 1000);
+    },
+    showSelfie() {
+
+        this.showPage(screens.selfie);
+        visualisation.disable();
+        WebARCamera.camera.addCameraStream('user');
+
+        setTimeout(()=> {
+            this.hideNotification();
+        },3000);
+
+        if (checkIOS() && !selfie_shown) {
+            this.iosVideo();
+            $('#vid').hide();
+        } else {
+
+        }
+        selfie_shown = true;
+        $('#webar_video').width(window.innerWidth);
+        $('#webar_video').height(window.innerWidth * 1.33333);
+        $('#webar_video').addClass('centered');
+
+        $('.selfie').width(window.innerWidth);
+        $('.selfie').height(window.innerWidth * 1.33333);
+        $('.selfie').addClass('centered_selfie');
+
+        $('.overlay').fadeOut();
         $('.selfie__overlay').hide();
+    },
+    backToAR() {
+        trackMe(tracked_events.RETURN_TO_WEBAR);
+        $('.experience').show();
+        $('.selfie').hide();
+        visualisation.enable();
+        visualisation.repos();
+        WebARCamera.camera.addCameraStream('environment');
     },
     retakePhoto() {
 
@@ -256,6 +278,7 @@ var creative = {
         // $('.selfie__overlay').css('background-image', 'none');
         $('.selfie__button').fadeIn();
         $('.selfie__grid').fadeIn();
+        $('.selfie__backtoar').fadeIn();
         $('.selfie__overlay').hide();
         $('.selfie__overlay').css('background-image', filter1);
         $('.pixi_container').css('opacity', 1);
@@ -313,6 +336,7 @@ var creative = {
             setTimeout(()=> {
                 $('#vid').css('opacity', 0);
                 $('#c2').css('opacity', 0);
+                $('.selfie__backtoar').fadeOut();
                 $('.selfie__grid').fadeOut();
                 $('.selfie__button').fadeOut();
                 flashIn('#c');
@@ -492,7 +516,7 @@ var creative = {
         TweenMax.to('.experience__notification', 1, {y: -100, alpha:0, ease:Back.easeOut});
     }
 };
-creative.init({container:'#container', width: 320, height: 568, gyro: false});
+creative.init({container:'#container', width: 320, height: 568, gyro: true});
 
 export default creative;
 

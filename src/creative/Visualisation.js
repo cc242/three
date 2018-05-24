@@ -1,4 +1,4 @@
-/*global Hammer TweenMax THREE Back Quad Linear Elastic trackMe $*/
+/*global Hammer TweenMax THREE Back Quad Linear Elastic trackMe $ */
 
 import {EventEmitter} from 'events';
 import ThreeSetup from './Three.Setup';
@@ -11,8 +11,13 @@ let scene, object, stats, camera, renderer;
 let INTERSECTED, raycaster, mouse, frustrum, cameraViewProjectionMatrix, intersect_timeout, hiding;
 let groups;
 let count = 0;
-let hiya, hiya_timeout, end_timeout, animating;
+let hiya, hiya_timeout, end_timeout, auto_timeout, animating;
+let auto_timeout_duration = 15000;
+let hiya_timeout_duration = 2000;
+let radius_pug = 3000;
 let multiples = 4;
+let saved_position;
+let cameraEnabled;
 let notifications = {
   intro: 'Look around to find Puggerfly.',
   selfie: 'Selfie time!'
@@ -50,7 +55,20 @@ class Experience extends EventEmitter {
         this.showNotification(notifications.intro, 1);
         if (!camera_enabled) {
             three.noCamera();
+            cameraEnabled = false;
+        } else {
+            cameraEnabled = true;
         }
+        console.log('START');
+        three.setControlsActive(true);
+    }
+    enableAutoTimeout() {
+        console.log('enable autotimeout');
+        let self = this;
+        clearTimeout(auto_timeout);
+        auto_timeout = setTimeout(()=> {
+            self.endTimeout();
+        }, auto_timeout_duration);
     }
     init() {
         three = new ThreeSetup(this.config);
@@ -106,8 +124,6 @@ class Experience extends EventEmitter {
             {id: 'butt1', canvas: 'butt'},
             {id: 'butt2', canvas: 'butt'},
             {id: 'skipping1', canvas: 'skipping'},
-            {id: 'skipping2', canvas: 'skipping'},
-            {id: 'skipping3', canvas: 'skipping'},
             {id: 'twerk1', canvas: 'twerk'},
             {id: 'star', canvas: 'star'},
         ];
@@ -120,6 +136,9 @@ class Experience extends EventEmitter {
             let radius = (Math.random() * 2000) + 3000;
             let xpos = Math.cos(angle) *radius;
             let zpos = Math.sin(angle)*radius;
+
+            let zpos_pug = Math.sin(angle)*radius_pug;
+            let xpos_pug = Math.cos(angle)*radius_pug;
             let group = new THREE.Object3D();
             group.add(s);
             scene.add(group);
@@ -149,7 +168,7 @@ class Experience extends EventEmitter {
                     break;
                 case 'twerk1':
                     group.rotationspeed = 0;
-                    s.position.set(xpos, 0,  zpos);
+                    s.position.set(xpos_pug, 0,  zpos_pug);
                     break;
                 case 'star':
                     scene.remove(s);
@@ -173,10 +192,11 @@ class Experience extends EventEmitter {
                 sprite.position.set(xpos, Math.random() * 4000, zpos);
                 sprite.scale.set(128, 128, 1.0);
                 let group = new THREE.Object3D();
-                scene.add(group);
                 group.add(sprite);
+                scene.add(group);
+
+                group.rotationspeed = Math.random() > 0.5 ? 0.003 : -0.003;
                 groups[arr_images[i].id] = group;
-                group.rotationspeed = ((i + 1) * (0.001) + 0.002);
             }
         }
         let imgTexture = THREE.ImageUtils.loadTexture(require('../img/hiya.png'));
@@ -185,26 +205,28 @@ class Experience extends EventEmitter {
         scene.add(hiya);
         hiya.scale.set(2560, 2560, 1.0);
     }
-    putOverPug(obj) {
+    /*putOverPug(obj) {
         var pos =  three.getObject('twerk1').position;
         TweenMax.to(obj.position, 0.5, {x: pos.x, y:pos.y+100, z:pos.z, ease:Elastic.easeOut})
-    }
-    putInFrontOfCamera(obj) {
-
-        var vec = new THREE.Vector3( 0, camera.position.y, -700 );
+    }*/
+    putOverPug(obj) {
+        let vec = new THREE.Vector3( 0, camera.position.y, -700 );
         vec.applyQuaternion( camera.quaternion );
         console.log('', vec);
-        /*
-        TweenMax.set(obj.position, {x: 0, y:vec.y, z:0, ease:Elastic.easeOut})
-        TweenMax.to(obj.position, 0.5, {x: vec.x, y:vec.y, z:vec.z, ease:Elastic.easeOut});
-        TweenMax.to(obj.position, 2, {y:camera.position.y-40, yoyo:true, repeat: -1, ease:Elastic.easeOut});
-        */
-
-        var pos =  three.getObject('twerk1').position;
+        let pos =  three.getObject('twerk1').position;
         TweenMax.set(obj.position, {x: 0, y:vec.y, z:0, ease:Elastic.easeOut})
         TweenMax.to(obj.position, 0.5, {x: pos.x, y:camera.position.y+100, z:pos.z, ease:Elastic.easeOut});
         TweenMax.to(obj.position, 1, {y:camera.position.y+70, yoyo:true, repeat: -1, ease:Quad.easeInOut});
         TweenMax.to(obj.material, 0.2, {opacity: 1});
+    }
+    putInFrontOfCamera(obj) {
+        var vec = new THREE.Vector3( 0, camera.position.y, -700 );
+        vec.applyQuaternion( camera.quaternion );
+        console.log('', vec);
+        TweenMax.set(obj.position, {x: 0, y:vec.y, z:0, ease:Elastic.easeOut})
+        TweenMax.to(obj.position, 0.5, {x: vec.x, y:vec.y, z:vec.z, ease:Elastic.easeOut});
+        TweenMax.to(obj.position, 2, {y:camera.position.y-40, yoyo:true, repeat: -1, ease:Elastic.easeOut});
+        // obj.scale.set(obj.scale.x /2 , obj.scale.y /2, obj.scale.z /2);
     }
     hideHiya(obj) {
         TweenMax.to(obj.position, 0.2, {x: 0, y:camera.position.y+140, z:0, ease:Quad.easeIn});
@@ -217,8 +239,21 @@ class Experience extends EventEmitter {
         let zpos = Math.sin(angle)*radius;
         return {x: xpos, z: zpos};
     }
+    repos() {
+        console.log('repos');
+        scene.updateMatrixWorld(true);
+        var position = new THREE.Vector3();
+        camera.lookAt(position);
+        let angle = Math.random()*Math.PI*2;
+        let zpos_pug = Math.sin(angle)*radius_pug;
+        let xpos_pug = Math.cos(angle) * radius_pug;
+        three.getObject('twerk1').position.set(xpos_pug, 0,  zpos_pug);
+        three.setControlsActive(true);
+    }
     enable() {
         animating = true;
+        this.enableAutoTimeout();
+        hiya_timeout_duration = 2000;
     }
     disable() {
         animating = false;
@@ -234,8 +269,13 @@ class Experience extends EventEmitter {
 
         for (let i=0; i<groups.length; i++) {
              groups[i].group.rotation.y += groups[i].group['rotationspeed'];
+
             switch(groups[i].id) {
                 case 'rainbow2':
+                    groups[i].group.position.z = (Math.cos(count/40) * 1300) + 0;
+                    groups[i].group.position.y = (Math.sin(count/40) * 800) + 100;
+                    break;
+                case 'rainbow3':
                     groups[i].group.position.z = (Math.cos(count/40) * 1300) + 0;
                     groups[i].group.position.y = (Math.sin(count/40) * 800) + 100;
                     break;
@@ -255,6 +295,10 @@ class Experience extends EventEmitter {
                     groups[i].group.position.z = (Math.cos(count/40) * 1300) + 0;
                     groups[i].group.position.y = (Math.sin(count/40) * 800) + 100;
                     break;
+                case 'dance2':
+                    groups[i].group.position.z = (Math.cos(count/40) * 1300) + 0;
+                    groups[i].group.position.y = (Math.sin(count/40) * 800) + 100;
+                    break;
             }
         }
 
@@ -269,14 +313,16 @@ class Experience extends EventEmitter {
         if (frustrum.intersectsSprite( three.getObject('twerk1'))) {
             if (!INTERSECTED) {
                 INTERSECTED = true;
+                clearTimeout(auto_timeout);
                 hiya_timeout = setTimeout(()=> {
-                    this.putInFrontOfCamera(hiya);
-                    this.showNotification(notifications.selfie, 0);
+                    this.putOverPug(hiya);
+                    if (cameraEnabled) this.showNotification(notifications.selfie, 0);
                     console.log('intersecting puggerfly');
                     end_timeout = setTimeout(()=> {
                         this.foundPuggerfly();
+                        this.hideHiya(hiya);
                     }, 1700);
-                }, 2000);
+                }, hiya_timeout_duration);
             }
         } else {
             INTERSECTED = false;
@@ -291,7 +337,7 @@ class Experience extends EventEmitter {
             switch (scene_sprites[i].id) {
                 case 'twerk1':
                     if (hiya) {
-                        // this.putInFrontOfCamera(hiya);
+                        // this.putOverPug(hiya);
                     }
                     break;
                 default:
@@ -306,11 +352,9 @@ class Experience extends EventEmitter {
                                 } else {
                                     groups[i].spr.position.set(this.getPosition().x, Math.random() * 3000,  this.getPosition().z);
                                 }
-
                             }, 1300);
                         }
                     }
-
             }
 
             sprites.getSprite(scene_sprites[i].canvas).render = false;
@@ -324,9 +368,24 @@ class Experience extends EventEmitter {
                 }
         stats.end();
     }
+    endTimeout() {
+        console.log('END TIMEOUT');
+        trackMe(tracked_events.PUGGERFLY_TIMEOUT);
+        hiya_timeout_duration = 1000;
+        three.setControlsActive(false);
+        scene.updateMatrixWorld(true);
+        var position = new THREE.Vector3();
+        position.getPositionFromMatrix( three.getObject('twerk1').matrixWorld );
+        console.log(position.x + ',' + position.y + ',' + position.z);
+        camera.lookAt(position);
+    }
     foundPuggerfly() {
+        clearTimeout(auto_timeout);
+        trackMe(cameraEnabled ? tracked_events.FOUND_PUGGERFLY : tracked_events.FOUND_PUGGERFLY_FALLBACK);
+        if (!cameraEnabled) {
+            return;
+        }
         this.emit('selfie_time');
-        trackMe(tracked_events.FOUND_PUGGERFLY);
         this.disable();
     }
     showNotification(s, delay) {

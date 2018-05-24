@@ -6,6 +6,8 @@ var screenWidth, screenHeight, scene, renderer, camera, controls, stats, gridHel
 var arr_materials = [];
 var obj_materials = [];
 var objects = {};
+var sky, sunSphere;
+var controlsActive;
 
 class ThreeSetup extends EventEmitter {
 
@@ -13,6 +15,9 @@ class ThreeSetup extends EventEmitter {
         super();
         this.config = config;
         this.init()
+    }
+    setControlsActive(b) {
+        controlsActive = b;
     }
     init() {
         /**
@@ -47,7 +52,7 @@ class ThreeSetup extends EventEmitter {
         }
         let size = 20000;
         let divisions = 50;
-        gridHelper = new THREE.GridHelper( size, divisions, 0x3b3b3b, 0x3b3b3b );
+        gridHelper = new THREE.GridHelper( size, divisions, 0xaaaaaa, 0xaaaaaa );
         // scene.add( gridHelper );
         gridHelper.position.y = -300;
         gridHelper.position.x = 5;
@@ -61,7 +66,7 @@ class ThreeSetup extends EventEmitter {
         var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.8 );
         directionalLight.position.set( 1, 10, 0 ).normalize();
         scene.add( directionalLight );
-
+        //controlsActive = true;
         // this.animate();
     }
     hideGrid() {
@@ -69,7 +74,11 @@ class ThreeSetup extends EventEmitter {
     }
     // this is called from Visualisation
     animate() {
-        controls.update();
+        if (controlsActive) {
+            // console.log('update control');
+            controls.update();
+        }
+        // console.log('', camera.position);
         renderer.render( scene, camera );
         /**
          * update canvastextures
@@ -127,8 +136,71 @@ class ThreeSetup extends EventEmitter {
             }});
     }
     noCamera() {
-        scene.add( gridHelper );
+        this.skyBox();
+        scene.add(gridHelper);
+
     }
+    skyBox() {
+        /**
+         * Config
+         * https://threejs.org/examples/#webgl_shaders_sky
+         * @type {THREE.Sky}
+         */
+        // Add Sky
+            sky = new THREE.Sky();
+            sky.scale.setScalar( 450000 );
+            scene.add( sky );
+
+            // Add Sun Helper
+            sunSphere = new THREE.Mesh(
+                new THREE.SphereBufferGeometry( 21000, 16, 8 ),
+                new THREE.MeshBasicMaterial( { color: 0xffffff } )
+            );
+            sunSphere.position.y = - 700000;
+            sunSphere.visible = false;
+            scene.add( sunSphere );
+
+            /// GUI
+
+            var effectController  = {
+                turbidity: 1,
+                rayleigh: 0.729,
+                mieCoefficient: 0.012,
+                mieDirectionalG: 0.442,
+                luminance: 0.1,
+                inclination: 0.6699, // elevation / inclination
+                azimuth: 0.6374, // Facing front,
+                sun: ! true
+            };
+
+            var distance = 400000;
+
+            function guiChanged() {
+
+                var uniforms = sky.material.uniforms;
+                uniforms.turbidity.value = effectController.turbidity;
+                uniforms.rayleigh.value = effectController.rayleigh;
+                uniforms.luminance.value = effectController.luminance;
+                uniforms.mieCoefficient.value = effectController.mieCoefficient;
+                uniforms.mieDirectionalG.value = effectController.mieDirectionalG;
+
+                var theta = Math.PI * ( effectController.inclination - 0.5 );
+                var phi = 2 * Math.PI * ( effectController.azimuth - 0.5 );
+
+                sunSphere.position.x = distance * Math.cos( phi );
+                sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( theta );
+                sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
+
+                sunSphere.visible = effectController.sun;
+
+                uniforms.sunPosition.value.copy( sunSphere.position );
+
+                renderer.render( scene, camera );
+
+            }
+            guiChanged();
+        }
+
 
 }
 

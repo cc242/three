@@ -72,7 +72,6 @@ class Sprites extends EventEmitter {
                         animsprite.animationSpeed = 0.5;
                     }
 
-
                     animsprite.play();
                     app.stage.addChild(animsprite);
 
